@@ -11,10 +11,15 @@ export default function CarritoPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container py-8 px-4">
-        <h1 className="font-serif text-3xl md:text-4xl font-semibold text-foreground mb-8">
-          Carrito
-        </h1>
+      <main className="container py-12 md:py-20 px-5 md:px-8">
+        <div className="mb-10 md:mb-14">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground mb-3">
+            Tu selección
+          </p>
+          <h1 className="font-serif text-3xl md:text-4xl font-medium text-foreground">
+            Carrito
+          </h1>
+        </div>
         <CartContent />
       </main>
       <Footer />

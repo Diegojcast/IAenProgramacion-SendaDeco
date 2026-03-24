@@ -84,13 +84,15 @@ export function CheckoutForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-8">
+    <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-10 lg:gap-14">
       {/* Form Fields */}
-      <div className="lg:col-span-2 space-y-8">
+      <div className="lg:col-span-2 space-y-12 md:space-y-14">
         {/* Personal Data */}
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Tus Datos</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-6">
+            Tus datos
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-5 md:gap-6">
             <div className="space-y-2">
               <Label htmlFor="nombre">Nombre</Label>
               <Input
@@ -98,7 +100,7 @@ export function CheckoutForm() {
                 required
                 value={formData.nombre}
                 onChange={(e) => handleChange("nombre", e.target.value)}
-                className="bg-card"
+                className="bg-card rounded-xl border-border/70 h-11"
               />
             </div>
             <div className="space-y-2">
@@ -109,7 +111,7 @@ export function CheckoutForm() {
                 required
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
-                className="bg-card"
+                className="bg-card rounded-xl border-border/70 h-11"
               />
             </div>
             <div className="sm:col-span-2 space-y-2">
@@ -120,7 +122,7 @@ export function CheckoutForm() {
                 required
                 value={formData.telefono}
                 onChange={(e) => handleChange("telefono", e.target.value)}
-                className="bg-card"
+                className="bg-card rounded-xl border-border/70 h-11"
               />
             </div>
           </div>
@@ -128,8 +130,10 @@ export function CheckoutForm() {
 
         {/* Shipping Address */}
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Dirección de envío</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-6">
+            Dirección de envío
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-5 md:gap-6">
             <div className="space-y-2">
               <Label htmlFor="calle">Calle</Label>
               <Input
@@ -137,7 +141,7 @@ export function CheckoutForm() {
                 required
                 value={formData.calle}
                 onChange={(e) => handleChange("calle", e.target.value)}
-                className="bg-card"
+                className="bg-card rounded-xl border-border/70 h-11"
               />
             </div>
             <div className="space-y-2">
@@ -147,7 +151,7 @@ export function CheckoutForm() {
                 required
                 value={formData.ciudad}
                 onChange={(e) => handleChange("ciudad", e.target.value)}
-                className="bg-card"
+                className="bg-card rounded-xl border-border/70 h-11"
               />
             </div>
             <div className="space-y-2">
@@ -157,7 +161,7 @@ export function CheckoutForm() {
                 required
                 value={formData.codigoPostal}
                 onChange={(e) => handleChange("codigoPostal", e.target.value)}
-                className="bg-card"
+                className="bg-card rounded-xl border-border/70 h-11"
               />
             </div>
           </div>
@@ -165,11 +169,13 @@ export function CheckoutForm() {
 
         {/* Delivery Method */}
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Método de Envío</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-6">
+            Envío
+          </h2>
           <RadioGroup
             value={formData.deliveryMethod}
             onValueChange={(value) => handleChange("deliveryMethod", value)}
-            className="flex gap-4"
+            className="flex gap-8"
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="envio" id="envio" />
@@ -184,11 +190,13 @@ export function CheckoutForm() {
 
         {/* Payment Method */}
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Método de Pago</h2>
+          <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-6">
+            Pago
+          </h2>
           <RadioGroup
             value={formData.paymentMethod}
             onValueChange={(value) => handleChange("paymentMethod", value)}
-            className="flex flex-wrap gap-4"
+            className="flex flex-wrap gap-x-8 gap-y-3"
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="mercadopago" id="mercadopago" />
@@ -208,28 +216,28 @@ export function CheckoutForm() {
 
       {/* Order Summary */}
       <div className="lg:col-span-1">
-        <div className="bg-card rounded-xl border border-border p-6 sticky top-20">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Resumen del pedido</h2>
+        <div className="bg-card rounded-2xl border border-border/60 p-8 md:p-9 sticky top-24 shadow-sm shadow-foreground/[0.02]">
+          <h2 className="font-serif text-xl font-medium text-foreground mb-8">Resumen</h2>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Truck className="h-4 w-4" />
-            <span>Tu pedido llega en {deliveryTime} días</span>
+          <div className="flex items-start gap-3 text-sm text-muted-foreground mb-8 leading-relaxed">
+            <Truck className="h-4 w-4 shrink-0 mt-0.5 opacity-70" strokeWidth={1.5} />
+            <span>Entrega estimada · {deliveryTime} días hábiles aprox.</span>
           </div>
 
-          <div className="space-y-3 text-sm border-t border-border pt-4">
+          <div className="space-y-4 text-sm border-t border-border/70 pt-6">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Entrega:</span>
-              <span className="text-foreground">{formatPrice(500)}</span>
+              <span className="text-muted-foreground">Envío</span>
+              <span className="text-foreground tracking-wide">{formatPrice(500)}</span>
             </div>
-            <div className="flex justify-between text-lg font-semibold pt-2 border-t border-border">
+            <div className="flex justify-between text-lg font-medium pt-4 border-t border-border/70">
               <span className="text-foreground">Total</span>
-              <span className="text-foreground">{formatPrice(total + 500)}</span>
+              <span className="text-foreground tracking-wide">{formatPrice(total + 500)}</span>
             </div>
           </div>
 
           <Button 
             type="submit" 
-            className="w-full rounded-full mt-6" 
+            className="w-full mt-8" 
             size="lg"
             disabled={isSubmitting}
           >

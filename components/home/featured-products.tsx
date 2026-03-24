@@ -5,12 +5,17 @@ export function FeaturedProducts() {
   const featuredProducts = products.slice(0, 4)
 
   return (
-    <section className="py-16 px-4 bg-card">
+    <section className="py-20 md:py-28 px-5 md:px-8 bg-secondary/25">
       <div className="container">
-        <h2 className="font-serif text-2xl md:text-3xl font-semibold text-foreground mb-8">
-          Featured Products
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="mb-12 md:mb-16 max-w-xl">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground mb-3">
+            Selección
+          </p>
+          <h2 className="font-serif text-3xl md:text-4xl font-medium text-foreground">
+            Piezas destacadas
+          </h2>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10">
           {featuredProducts.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}

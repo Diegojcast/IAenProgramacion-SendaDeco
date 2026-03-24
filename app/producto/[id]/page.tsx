@@ -33,7 +33,7 @@ export default async function ProductoPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container py-8 px-4">
+      <main className="container py-12 md:py-20 px-5 md:px-8">
         <ProductDetail product={product} />
       </main>
       <Footer />
