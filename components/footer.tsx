@@ -15,34 +15,37 @@ function PinterestIcon({ className }: { className?: string }) {
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-card py-12 px-4">
-      <div className="container">
-        <div className="flex flex-col items-center gap-6">
-          <Link href="/" className="font-serif text-xl font-semibold text-foreground">
+    <footer className="border-t border-border/60 bg-secondary/30 py-16 md:py-24 px-5">
+      <div className="container max-w-3xl mx-auto text-center">
+        <div className="flex flex-col items-center justify-center gap-10">
+          <Link
+            href="/"
+            className="font-serif text-2xl font-medium text-foreground tracking-tight text-center"
+          >
             Senda Deco
           </Link>
           
-          <nav className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-            <Link href="/productos" className="hover:text-primary transition-colors">
+          <nav className="flex flex-wrap justify-center gap-x-10 gap-y-3 text-sm text-muted-foreground">
+            <Link href="/productos" className="hover:text-foreground transition-colors duration-300">
               Productos
             </Link>
-            <Link href="/productos?category=macrame" className="hover:text-primary transition-colors">
+            <Link href="/productos?category=macrame" className="hover:text-foreground transition-colors duration-300">
               Macramé
             </Link>
-            <Link href="/productos?category=cemento" className="hover:text-primary transition-colors">
+            <Link href="/productos?category=cemento" className="hover:text-foreground transition-colors duration-300">
               Cemento
             </Link>
-            <Link href="/productos?category=velas" className="hover:text-primary transition-colors">
+            <Link href="/productos?category=velas" className="hover:text-foreground transition-colors duration-300">
               Velas
             </Link>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-center gap-6">
             <a 
               href="https://instagram.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors duration-300"
               aria-label="Instagram"
             >
               <Instagram className="h-5 w-5" />
@@ -51,7 +54,7 @@ export function Footer() {
               href="https://facebook.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors duration-300"
               aria-label="Facebook"
             >
               <Facebook className="h-5 w-5" />
@@ -60,14 +63,14 @@ export function Footer() {
               href="https://pinterest.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-primary transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors duration-300"
               aria-label="Pinterest"
             >
               <PinterestIcon className="h-5 w-5" />
             </a>
           </div>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground tracking-wide text-center max-w-md mx-auto">
             © {new Date().getFullYear()} Senda Deco. Todos los derechos reservados.
           </p>
         </div>

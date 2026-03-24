@@ -1,34 +1,69 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Truck } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { formatCartDeliveryLabel, formatPrice, type Order } from "@/lib/data"
+import {
+  formatCartDeliveryLabel,
+  formatPrice,
+  type Order,
+  colors as colorOptions,
+} from "@/lib/data"
 import { registerOrderMock } from "@/lib/admin"
+import {
+  checkoutFormSchema,
+  CHECKOUT_SHIPPING_ARS,
+  type CheckoutFormValues,
+} from "@/lib/checkout-schema"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Separator } from "@/components/ui/separator"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form"
+import { cn } from "@/lib/utils"
+
+function colorLabel(colorId: string) {
+  return colorOptions.find((c) => c.id === colorId)?.name ?? colorId
+}
 
 export function CheckoutForm() {
   const router = useRouter()
   const { items, total, clearCart, setCurrentOrder } = useCart()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [shouldRedirect, setShouldRedirect] = useState(false)
-  
-  const [formData, setFormData] = useState({
-    nombre: "",
-    email: "",
-    telefono: "",
-    calle: "",
-    ciudad: "",
-    codigoPostal: "",
-    deliveryMethod: "envio" as "envio" | "retiro",
-    paymentMethod: "mercadopago" as "mercadopago" | "transferencia" | "efectivo",
+
+  const form = useForm<CheckoutFormValues>({
+    resolver: zodResolver(checkoutFormSchema),
+    defaultValues: {
+      nombre: "",
+      email: "",
+      telefono: "",
+      calle: "",
+      ciudad: "",
+      codigoPostal: "",
+      deliveryMethod: "envio",
+      paymentMethod: "mercadopago",
+    },
+    mode: "onTouched",
   })
 
+  const deliveryMethod = form.watch("deliveryMethod")
   const deliveryTime = formatCartDeliveryLabel(items)
+  const subtotal = total
+  const shippingCost = deliveryMethod === "envio" ? CHECKOUT_SHIPPING_ARS : 0
+  const grandTotal = subtotal + shippingCost
 
   useEffect(() => {
     if (items.length === 0 && !isSubmitting) {
@@ -42,41 +77,53 @@ export function CheckoutForm() {
     }
   }, [shouldRedirect, router])
 
-  const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
+  useEffect(() => {
+    if (deliveryMethod === "retiro") {
+      form.clearErrors(["calle", "ciudad", "codigoPostal"])
+    }
+  }, [deliveryMethod, form])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const onSubmit = (values: CheckoutFormValues) => {
     setIsSubmitting(true)
 
-    // Create order
+    const ship =
+      values.deliveryMethod === "envio" ? CHECKOUT_SHIPPING_ARS : 0
+    const orderTotal = subtotal + ship
+
     const order: Order = {
       id: `#${Math.floor(10000 + Math.random() * 90000)}`,
       items,
       customer: {
-        nombre: formData.nombre,
-        email: formData.email,
-        telefono: formData.telefono,
-        calle: formData.calle,
-        ciudad: formData.ciudad,
-        codigoPostal: formData.codigoPostal,
+        nombre: values.nombre.trim(),
+        email: values.email.trim(),
+        telefono: values.telefono.trim(),
+        calle:
+          values.deliveryMethod === "envio"
+            ? values.calle?.trim() ?? ""
+            : values.calle?.trim() || "Retiro en local",
+        ciudad:
+          values.deliveryMethod === "envio"
+            ? values.ciudad?.trim() ?? ""
+            : values.ciudad?.trim() || "—",
+        codigoPostal:
+          values.deliveryMethod === "envio"
+            ? values.codigoPostal?.trim() ?? ""
+            : values.codigoPostal?.trim() || "—",
       },
-      deliveryMethod: formData.deliveryMethod,
-      paymentMethod: formData.paymentMethod,
+      deliveryMethod: values.deliveryMethod,
+      paymentMethod: values.paymentMethod,
       status: "pendiente",
-      total,
+      total: orderTotal,
       deliveryTime,
       createdAt: new Date(),
     }
 
-    // Simulate API call
     setTimeout(() => {
       registerOrderMock(order)
       setCurrentOrder(order)
       clearCart()
       router.push("/confirmacion")
-    }, 1000)
+    }, 800)
   }
 
   if (items.length === 0 || shouldRedirect) {
@@ -84,159 +131,309 @@ export function CheckoutForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid lg:grid-cols-3 gap-8">
-      {/* Form Fields */}
-      <div className="lg:col-span-2 space-y-8">
-        {/* Personal Data */}
-        <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Tus Datos</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="nombre">Nombre</Label>
-              <Input
-                id="nombre"
-                required
-                value={formData.nombre}
-                onChange={(e) => handleChange("nombre", e.target.value)}
-                className="bg-card"
+    <Form {...form}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="grid lg:grid-cols-3 gap-10 lg:gap-14"
+      >
+        <div className="lg:col-span-2 space-y-12 md:space-y-14">
+          <section>
+            <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-6">
+              Tus datos
+            </h2>
+            <div className="grid sm:grid-cols-2 gap-5 md:gap-6">
+              <FormField
+                control={form.control}
+                name="nombre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre completo</FormLabel>
+                    <FormControl>
+                      <Input
+                        autoComplete="name"
+                        className="bg-card rounded-xl border-border/70 h-11"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        autoComplete="email"
+                        className="bg-card rounded-xl border-border/70 h-11"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="telefono"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="tel"
+                        autoComplete="tel"
+                        placeholder="Ej. 11 2345 6789"
+                        className="bg-card rounded-xl border-border/70 h-11"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
-                className="bg-card"
+          </section>
+
+          <section>
+            <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-6">
+              Envío
+            </h2>
+            <FormField
+              control={form.control}
+              name="deliveryMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex flex-wrap gap-8"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="envio" id="envio" />
+                        <Label htmlFor="envio" className="cursor-pointer font-normal">
+                          Envío a domicilio
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="retiro" id="retiro" />
+                        <Label htmlFor="retiro" className="cursor-pointer font-normal">
+                          Retiro en local
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {deliveryMethod === "retiro" && (
+              <p className="text-sm text-muted-foreground mt-4 max-w-md leading-relaxed">
+                Te avisamos cuando tu pedido esté listo para retirar. La dirección de envío no aplica.
+              </p>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-6">
+              Dirección {deliveryMethod === "envio" ? "" : "(opcional)"}
+            </h2>
+            <div className="grid sm:grid-cols-2 gap-5 md:gap-6">
+              <FormField
+                control={form.control}
+                name="calle"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-2">
+                    <FormLabel>Calle y número</FormLabel>
+                    <FormControl>
+                      <Input
+                        autoComplete="street-address"
+                        className={cn(
+                          "bg-card rounded-xl border-border/70 h-11",
+                          deliveryMethod === "retiro" && "opacity-70"
+                        )}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="ciudad"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ciudad</FormLabel>
+                    <FormControl>
+                      <Input
+                        autoComplete="address-level2"
+                        className={cn(
+                          "bg-card rounded-xl border-border/70 h-11",
+                          deliveryMethod === "retiro" && "opacity-70"
+                        )}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="codigoPostal"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Código postal</FormLabel>
+                    <FormControl>
+                      <Input
+                        autoComplete="postal-code"
+                        className={cn(
+                          "bg-card rounded-xl border-border/70 h-11",
+                          deliveryMethod === "retiro" && "opacity-70"
+                        )}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-            <div className="sm:col-span-2 space-y-2">
-              <Label htmlFor="telefono">Teléfono</Label>
-              <Input
-                id="telefono"
-                type="tel"
-                required
-                value={formData.telefono}
-                onChange={(e) => handleChange("telefono", e.target.value)}
-                className="bg-card"
-              />
-            </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Shipping Address */}
-        <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Dirección de envío</h2>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="calle">Calle</Label>
-              <Input
-                id="calle"
-                required
-                value={formData.calle}
-                onChange={(e) => handleChange("calle", e.target.value)}
-                className="bg-card"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ciudad">Ciudad</Label>
-              <Input
-                id="ciudad"
-                required
-                value={formData.ciudad}
-                onChange={(e) => handleChange("ciudad", e.target.value)}
-                className="bg-card"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="codigoPostal">Código Postal</Label>
-              <Input
-                id="codigoPostal"
-                required
-                value={formData.codigoPostal}
-                onChange={(e) => handleChange("codigoPostal", e.target.value)}
-                className="bg-card"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* Delivery Method */}
-        <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Método de Envío</h2>
-          <RadioGroup
-            value={formData.deliveryMethod}
-            onValueChange={(value) => handleChange("deliveryMethod", value)}
-            className="flex gap-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="envio" id="envio" />
-              <Label htmlFor="envio" className="cursor-pointer">Envío</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="retiro" id="retiro" />
-              <Label htmlFor="retiro" className="cursor-pointer">Retiro</Label>
-            </div>
-          </RadioGroup>
-        </section>
-
-        {/* Payment Method */}
-        <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Método de Pago</h2>
-          <RadioGroup
-            value={formData.paymentMethod}
-            onValueChange={(value) => handleChange("paymentMethod", value)}
-            className="flex flex-wrap gap-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="mercadopago" id="mercadopago" />
-              <Label htmlFor="mercadopago" className="cursor-pointer">Mercado Pago</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="transferencia" id="transferencia" />
-              <Label htmlFor="transferencia" className="cursor-pointer">Transferencia</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="efectivo" id="efectivo" />
-              <Label htmlFor="efectivo" className="cursor-pointer">Efectivo</Label>
-            </div>
-          </RadioGroup>
-        </section>
-      </div>
-
-      {/* Order Summary */}
-      <div className="lg:col-span-1">
-        <div className="bg-card rounded-xl border border-border p-6 sticky top-20">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Resumen del pedido</h2>
-
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Truck className="h-4 w-4" />
-            <span>Tu pedido llega en {deliveryTime} días</span>
-          </div>
-
-          <div className="space-y-3 text-sm border-t border-border pt-4">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Entrega:</span>
-              <span className="text-foreground">{formatPrice(500)}</span>
-            </div>
-            <div className="flex justify-between text-lg font-semibold pt-2 border-t border-border">
-              <span className="text-foreground">Total</span>
-              <span className="text-foreground">{formatPrice(total + 500)}</span>
-            </div>
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full rounded-full mt-6" 
-            size="lg"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Procesando..." : "Confirmar compra"}
-          </Button>
+          <section>
+            <h2 className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground mb-6">
+              Pago
+            </h2>
+            <FormField
+              control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="flex flex-wrap gap-x-8 gap-y-3"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="mercadopago" id="mercadopago" />
+                        <Label htmlFor="mercadopago" className="cursor-pointer font-normal">
+                          Mercado Pago
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="transferencia" id="transferencia" />
+                        <Label htmlFor="transferencia" className="cursor-pointer font-normal">
+                          Transferencia
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="efectivo" id="efectivo" />
+                        <Label htmlFor="efectivo" className="cursor-pointer font-normal">
+                          Efectivo
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </section>
         </div>
-      </div>
-    </form>
+
+        <div className="lg:col-span-1">
+          <div className="bg-card rounded-2xl border border-border/60 p-8 md:p-9 sticky top-24 shadow-sm shadow-foreground/[0.02]">
+            <h2 className="font-serif text-xl font-medium text-foreground mb-6">
+              Tu pedido
+            </h2>
+
+            <ul className="max-h-[min(360px,50vh)] space-y-4 overflow-y-auto pr-1">
+              {items.map((item) => (
+                <li
+                  key={`${item.id}-${item.color}`}
+                  className="flex gap-4 text-sm"
+                >
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border/30">
+                    <Image
+                      src={item.image}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="64px"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground leading-snug line-clamp-2">
+                      {item.name}
+                    </p>
+                    <p className="text-muted-foreground mt-0.5">
+                      {colorLabel(item.color)} · Cant. {item.quantity}
+                    </p>
+                    <p className="text-foreground mt-1 tracking-wide tabular-nums">
+                      {formatPrice(item.price * item.quantity)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <Separator className="my-6 bg-border/70" />
+
+            <div className="flex items-start gap-3 text-sm text-muted-foreground mb-6 leading-relaxed">
+              <Truck
+                className="h-4 w-4 shrink-0 mt-0.5 opacity-70"
+                strokeWidth={1.5}
+              />
+              <span>Entrega estimada · {deliveryTime} días hábiles aprox.</span>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-foreground tabular-nums tracking-wide">
+                  {formatPrice(subtotal)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground">
+                  {deliveryMethod === "envio" ? "Envío" : "Retiro"}
+                </span>
+                <span className="text-foreground tabular-nums tracking-wide">
+                  {deliveryMethod === "envio"
+                    ? formatPrice(CHECKOUT_SHIPPING_ARS)
+                    : formatPrice(0)}
+                </span>
+              </div>
+            </div>
+
+            <Separator className="my-5 bg-border/70" />
+
+            <div className="flex justify-between text-lg font-medium gap-4">
+              <span className="text-foreground">Total</span>
+              <span className="text-foreground tabular-nums tracking-wide">
+                {formatPrice(grandTotal)}
+              </span>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full mt-8"
+              size="lg"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Procesando..." : "Confirmar compra"}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </Form>
   )
 }

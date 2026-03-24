@@ -104,7 +104,7 @@ export function OrderTracking() {
         <div className="border-t border-border mt-4 pt-4">
           <div className="flex justify-between text-lg font-semibold">
             <span className="text-foreground">Total</span>
-            <span className="text-foreground">{formatPrice(currentOrder.total + 500)}</span>
+            <span className="text-foreground">{formatPrice(currentOrder.total)}</span>
           </div>
         </div>
       </div>

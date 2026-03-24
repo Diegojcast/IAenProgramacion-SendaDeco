@@ -23,9 +23,11 @@ export function ProductFilters() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <div>
-        <h3 className="font-medium text-foreground mb-4">Categoría</h3>
+        <h3 className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-5">
+          Categoría
+        </h3>
         <RadioGroup
           value={currentCategory}
           onValueChange={(value) => updateFilter("category", value)}
@@ -48,7 +50,9 @@ export function ProductFilters() {
       </div>
 
       <div>
-        <h3 className="font-medium text-foreground mb-4">Color</h3>
+        <h3 className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-5">
+          Color
+        </h3>
         <RadioGroup
           value={currentColor}
           onValueChange={(value) => updateFilter("color", value)}

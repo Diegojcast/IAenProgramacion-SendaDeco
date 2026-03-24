@@ -18,19 +18,19 @@ export function ProductGrid() {
 
   if (filteredProducts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-lg text-muted-foreground">
-          No encontramos productos con estos filtros.
+      <div className="flex flex-col items-center justify-center py-24 text-center px-4">
+        <p className="font-serif text-xl text-foreground max-w-md">
+          No hay piezas con estos filtros
         </p>
-        <p className="text-sm text-muted-foreground mt-2">
-          Intenta con otros filtros o explora todas las categorías.
+        <p className="text-muted-foreground mt-4 leading-relaxed max-w-sm">
+          Probá otra categoría o color, o mirá toda la colección.
         </p>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
       {filteredProducts.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}

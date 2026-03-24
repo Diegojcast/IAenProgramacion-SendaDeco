@@ -4,15 +4,15 @@ import { Analytics } from '@vercel/analytics/next'
 import { CartProvider } from '@/lib/cart-context'
 import './globals.css'
 
-const cormorant = Cormorant_Garamond({ 
+const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-serif"
+  variable: "--font-display",
 })
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans"
+  variable: "--font-body",
 })
 
 export const metadata: Metadata = {
@@ -45,7 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className={`${cormorant.variable} ${inter.variable}`}>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased text-[15px] sm:text-base leading-relaxed">
         <CartProvider>
           {children}
         </CartProvider>
