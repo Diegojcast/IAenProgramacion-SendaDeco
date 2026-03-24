@@ -16,9 +16,12 @@ function PinterestIcon({ className }: { className?: string }) {
 export function Footer() {
   return (
     <footer className="border-t border-border/60 bg-secondary/30 py-16 md:py-24 px-5">
-      <div className="container max-w-3xl">
-        <div className="flex flex-col items-center gap-10">
-          <Link href="/" className="font-serif text-2xl font-medium text-foreground tracking-tight">
+      <div className="container max-w-3xl mx-auto text-center">
+        <div className="flex flex-col items-center justify-center gap-10">
+          <Link
+            href="/"
+            className="font-serif text-2xl font-medium text-foreground tracking-tight text-center"
+          >
             Senda Deco
           </Link>
           
@@ -37,7 +40,7 @@ export function Footer() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center justify-center gap-6">
             <a 
               href="https://instagram.com" 
               target="_blank" 
@@ -67,7 +70,7 @@ export function Footer() {
             </a>
           </div>
 
-          <p className="text-xs text-muted-foreground tracking-wide">
+          <p className="text-xs text-muted-foreground tracking-wide text-center max-w-md mx-auto">
             © {new Date().getFullYear()} Senda Deco. Todos los derechos reservados.
           </p>
         </div>

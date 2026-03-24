@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { Menu, Search, ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
@@ -54,15 +53,11 @@ export function Header() {
           </Link>
         </nav>
 
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2">
-          <Image
-            src="/logo.png"
-            alt="Senda Deco - Handmade"
-            width={120}
-            height={48}
-            className="h-10 w-auto"
-            priority
-          />
+        <Link
+          href="/"
+          className="absolute left-1/2 -translate-x-1/2 font-serif text-xl md:text-2xl font-medium text-foreground tracking-tight hover:text-primary transition-colors duration-300"
+        >
+          Senda Deco
         </Link>
 
         <div className="flex items-center gap-1">
