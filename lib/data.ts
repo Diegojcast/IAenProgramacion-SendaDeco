@@ -10,6 +10,7 @@ export type {
   ProductCategory,
   ProductColorId,
   OrderStatus,
+  FulfillmentSnapshot,
 } from "@/types"
 
 export { products, categories, colorOptions, colors } from "@/data"
@@ -20,6 +21,9 @@ export {
   formatDeliveryRange,
   formatProductDeliveryLabel,
   formatCartDeliveryLabel,
+  resolveFulfillmentSnapshot,
 } from "./delivery"
+
+export type { ProductDeliveryEstimate, FulfillmentResolver } from "./delivery"
 
 export { formatPrice } from "./format"

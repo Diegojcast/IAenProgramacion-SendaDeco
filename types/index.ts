@@ -8,6 +8,30 @@ export type ProductCategory = "macrame" | "cemento" | "velas"
 /** IDs de color disponibles como variantes en catálogo */
 export type ProductColorId = "crudo" | "gris" | "beige" | "terracota"
 
+/**
+ * Datos de inventario / insumos para calcular plazos (hoy opcional; mañana vendrá de API o BOM).
+ * Valores por defecto conservan el comportamiento actual solo con `product.stock`.
+ */
+export type FulfillmentSnapshot = {
+  /** Unidades terminadas listas para despacho (default: `product.stock`) */
+  finishedStock: number
+  /**
+   * Si hay insumos suficientes para fabricar (futuro: validación contra depósito / receta).
+   * `false` fuerza a considerar espera de materiales antes del pipeline de taller.
+   */
+  materialsAvailable: boolean
+  /**
+   * Días extra antes de poder iniciar producción (reposición, compras, etc.).
+   * Se suma al camino made-to-order; en stock terminado no aplica.
+   */
+  materialLeadDays: number
+  /**
+   * Cantidad solicitada (p. ej. línea de carrito). Reservado para validación futura
+   * de materiales por unidades (BOM × cantidad).
+   */
+  requestedQuantity?: number
+}
+
 export type Product = {
   id: string
   name: string
