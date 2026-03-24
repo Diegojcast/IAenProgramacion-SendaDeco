@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Truck } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { calculateCartDeliveryTime, formatPrice, type Order } from "@/lib/data"
+import { formatCartDeliveryLabel, formatPrice, type Order } from "@/lib/data"
+import { registerOrderMock } from "@/lib/admin"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,7 +28,7 @@ export function CheckoutForm() {
     paymentMethod: "mercadopago" as "mercadopago" | "transferencia" | "efectivo",
   })
 
-  const deliveryTime = calculateCartDeliveryTime(items)
+  const deliveryTime = formatCartDeliveryLabel(items)
 
   useEffect(() => {
     if (items.length === 0 && !isSubmitting) {
@@ -71,6 +72,7 @@ export function CheckoutForm() {
 
     // Simulate API call
     setTimeout(() => {
+      registerOrderMock(order)
       setCurrentOrder(order)
       clearCart()
       router.push("/confirmacion")

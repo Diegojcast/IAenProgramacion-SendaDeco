@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { type Product, calculateDeliveryTime, formatPrice } from "@/lib/data"
+import { type Product, formatProductDeliveryLabel, formatPrice } from "@/lib/data"
 import { DeliveryBadge } from "./delivery-badge"
 
 type ProductCardProps = {
@@ -10,7 +10,7 @@ type ProductCardProps = {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const delivery = calculateDeliveryTime(product)
+  const deliveryDays = formatProductDeliveryLabel(product)
 
   return (
     <Link href={`/producto/${product.id}`} className="group block">
@@ -30,7 +30,7 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="text-sm font-semibold text-foreground">
           {formatPrice(product.price)}
         </p>
-        <DeliveryBadge days={delivery.days} />
+        <DeliveryBadge days={deliveryDays} />
       </div>
     </Link>
   )

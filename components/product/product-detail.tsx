@@ -4,7 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Minus, Plus, Truck, Hand } from "lucide-react"
-import { type Product, colors, calculateDeliveryTime, formatPrice } from "@/lib/data"
+import { type Product, colors, formatProductDeliveryLabel, formatPrice } from "@/lib/data"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -19,11 +19,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [quantity, setQuantity] = useState(1)
   const [selectedColor, setSelectedColor] = useState(product.color)
   
-  const delivery = calculateDeliveryTime(product)
-  const productColor = colors.find(c => c.id === product.color)
+  const deliveryLabel = formatProductDeliveryLabel(product)
+  const variantColors = colors.filter((c) => product.colors.includes(c.id))
 
   const handleAddToCart = () => {
-    addItem(product, quantity)
+    addItem({ ...product, color: selectedColor }, quantity)
     router.push("/carrito")
   }
 
@@ -55,7 +55,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
         <div className="mt-6">
           <h3 className="text-sm font-medium text-foreground mb-3">Color</h3>
           <div className="flex gap-3">
-            {colors.map((color) => (
+            {variantColors.map((color) => (
               <button
                 key={color.id}
                 onClick={() => setSelectedColor(color.id as typeof selectedColor)}
@@ -76,7 +76,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
         <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
           <Truck className="h-4 w-4" />
           <span className="font-medium text-foreground">Entrega estimada:</span>
-          <span>{delivery.days} días</span>
+          <span>{deliveryLabel} días</span>
         </div>
 
         {/* Quantity Selector */}

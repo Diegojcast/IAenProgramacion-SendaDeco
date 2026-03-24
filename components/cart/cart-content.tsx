@@ -4,7 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Minus, Plus, Trash2, Truck, ShoppingBag } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
-import { calculateCartDeliveryTime, formatPrice } from "@/lib/data"
+import { formatCartDeliveryLabel, formatPrice } from "@/lib/data"
 import { Button } from "@/components/ui/button"
 
 export function CartContent() {
@@ -27,7 +27,7 @@ export function CartContent() {
     )
   }
 
-  const deliveryTime = calculateCartDeliveryTime(items)
+  const deliveryTime = formatCartDeliveryLabel(items)
 
   return (
     <div className="grid lg:grid-cols-3 gap-8">
@@ -61,7 +61,7 @@ export function CartContent() {
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  onClick={() => updateQuantity(item.id, item.color, item.quantity - 1)}
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
@@ -72,7 +72,7 @@ export function CartContent() {
                   variant="outline"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  onClick={() => updateQuantity(item.id, item.color, item.quantity + 1)}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
@@ -84,7 +84,7 @@ export function CartContent() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                onClick={() => removeItem(item.id)}
+                onClick={() => removeItem(item.id, item.color)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
