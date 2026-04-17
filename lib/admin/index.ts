@@ -1,17 +1,14 @@
 /**
- * Capa admin (MVP): estructura para órdenes y catálogo sin UI aún.
- * - En memoria / mock hasta conectar persistencia.
+ * Capa admin: acceso a órdenes vía repositorio de base de datos.
  */
 
 import type { Order } from "@/types"
+import { createOrder, listOrders } from "@/lib/repositories/orders"
 
-/** Cola mock de órdenes (reemplazar por base de datos). */
-const orders: Order[] = []
-
-export function registerOrderMock(order: Order): void {
-  orders.unshift(order)
+export async function registerOrder(order: Order): Promise<Order> {
+  return createOrder(order)
 }
 
-export function listOrdersMock(): readonly Order[] {
-  return orders
+export async function listOrdersFromDB(): Promise<readonly Order[]> {
+  return listOrders()
 }

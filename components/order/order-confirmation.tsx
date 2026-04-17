@@ -32,7 +32,7 @@ export function OrderConfirmation() {
       </h1>
 
       <p className="text-muted-foreground mb-2">
-        Número Orden: <span className="font-medium text-foreground">{currentOrder.id}</span>
+        Número Orden: <span className="font-medium text-foreground">#{currentOrder.id}</span>
       </p>
 
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-8">

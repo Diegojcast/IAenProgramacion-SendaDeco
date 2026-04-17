@@ -1,19 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Truck } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
+import { ProductImageCarousel } from "@/components/product/product-image-carousel"
 import {
   formatCartDeliveryLabel,
   formatPrice,
   type Order,
-  colors as colorOptions,
 } from "@/lib/data"
-import { registerOrderMock } from "@/lib/admin"
+import type { ColorRow } from "@/lib/repositories/colors"
+
 import {
   checkoutFormSchema,
   CHECKOUT_SHIPPING_ARS,
@@ -34,11 +34,11 @@ import {
 } from "@/components/ui/form"
 import { cn } from "@/lib/utils"
 
-function colorLabel(colorId: string) {
-  return colorOptions.find((c) => c.id === colorId)?.name ?? colorId
+function colorLabel(colorId: string, colorOptions: ColorRow[]) {
+  return colorOptions.find((c) => c.slug === colorId)?.name ?? colorId
 }
 
-export function CheckoutForm() {
+export function CheckoutForm({ colorOptions }: { colorOptions: ColorRow[] }) {
   const router = useRouter()
   const { items, total, clearCart, setCurrentOrder } = useCart()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -91,7 +91,7 @@ export function CheckoutForm() {
     const orderTotal = subtotal + ship
 
     const order: Order = {
-      id: `#${Math.floor(10000 + Math.random() * 90000)}`,
+      id: `${Math.floor(10000 + Math.random() * 90000)}`,
       items,
       customer: {
         nombre: values.nombre.trim(),
@@ -118,12 +118,29 @@ export function CheckoutForm() {
       createdAt: new Date(),
     }
 
-    setTimeout(() => {
-      registerOrderMock(order)
-      setCurrentOrder(order)
-      clearCart()
-      router.push("/confirmacion")
-    }, 800)
+    fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(order),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al guardar la orden")
+        return res.json()
+      })
+      .then(({ order: saved }) => {
+        setCurrentOrder(saved)
+        clearCart()
+        router.push("/confirmacion")
+      })
+      .catch(() => {
+        // Fallback: show confirmation with local order even if DB write fails
+        setCurrentOrder(order)
+        clearCart()
+        router.push("/confirmacion")
+      })
+      .finally(() => {
+        setIsSubmitting(false)
+      })
   }
 
   if (items.length === 0 || shouldRedirect) {
@@ -358,16 +375,15 @@ export function CheckoutForm() {
             <ul className="max-h-[min(360px,50vh)] space-y-4 overflow-y-auto pr-1">
               {items.map((item) => (
                 <li
-                  key={`${item.id}-${item.color}`}
+                  key={`${item.id}-${item.selectedColor}`}
                   className="flex gap-4 text-sm"
                 >
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border/30">
-                    <Image
-                      src={item.image}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="64px"
+                    <ProductImageCarousel
+                      productId={item.id}
+                      imageIds={item.imageIds}
+                      alt={item.name}
+                      className="h-16 w-16 rounded-xl"
                     />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -375,7 +391,7 @@ export function CheckoutForm() {
                       {item.name}
                     </p>
                     <p className="text-muted-foreground mt-0.5">
-                      {colorLabel(item.color)} · Cant. {item.quantity}
+                      {colorLabel(item.selectedColor, colorOptions)} · Cant. {item.quantity}
                     </p>
                     <p className="text-foreground mt-1 tracking-wide tabular-nums">
                       {formatPrice(item.price * item.quantity)}

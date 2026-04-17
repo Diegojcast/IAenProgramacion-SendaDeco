@@ -1,11 +1,11 @@
 "use client"
 
-import Image from "next/image"
 import Link from "next/link"
 import { Minus, Plus, Trash2, Truck, ShoppingBag } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { formatCartDeliveryLabel, formatPrice } from "@/lib/data"
 import { Button } from "@/components/ui/button"
+import { ProductImageCarousel } from "@/components/product/product-image-carousel"
 
 export function CartContent() {
   const { items, updateQuantity, removeItem, total } = useCart()
@@ -32,47 +32,46 @@ export function CartContent() {
   return (
     <div className="grid lg:grid-cols-3 gap-10 lg:gap-14">
       {/* Cart Items */}
-      <div className="lg:col-span-2 space-y-5">
+      <div className="lg:col-span-2 space-y-4">
         {items.map((item) => (
           <div
-            key={`${item.id}-${item.color}`}
-            className="flex gap-5 p-6 md:p-7 bg-card rounded-2xl border border-border/60 shadow-sm shadow-foreground/[0.02]"
+            key={`${item.id}-${item.selectedColor}`}
+            className="flex gap-3 sm:gap-5 p-4 sm:p-6 md:p-7 bg-card rounded-2xl border border-border/60 shadow-sm shadow-foreground/[0.02]"
           >
-            <div className="relative w-28 h-28 flex-shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border/30">
-              <Image
-                src={item.image}
+            <div className="relative w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border/30">
+              <ProductImageCarousel
+                productId={item.id}
+                imageIds={item.imageIds}
                 alt={item.name}
-                fill
-                className="object-cover"
-                sizes="96px"
+                className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl"
               />
             </div>
             
             <div className="flex-1 min-w-0">
-              <h3 className="font-normal text-foreground truncate text-base">
+              <h3 className="font-normal text-foreground truncate text-sm sm:text-base">
                 {item.name}
               </h3>
-              <p className="text-sm text-muted-foreground mt-1 tracking-wide">
+              <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1 tracking-wide">
                 {formatPrice(item.price)}
               </p>
               
-              <div className="flex items-center gap-3 mt-5">
+              <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-5">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9"
-                  onClick={() => updateQuantity(item.id, item.color, item.quantity - 1)}
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  onClick={() => updateQuantity(item.id, item.selectedColor, item.quantity - 1)}
                 >
                   <Minus className="h-3 w-3" />
                 </Button>
-                <span className="w-8 text-center text-sm font-medium">
+                <span className="w-6 sm:w-8 text-center text-sm font-medium">
                   {item.quantity}
                 </span>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-9 w-9"
-                  onClick={() => updateQuantity(item.id, item.color, item.quantity + 1)}
+                  className="h-8 w-8 sm:h-9 sm:w-9"
+                  onClick={() => updateQuantity(item.id, item.selectedColor, item.quantity + 1)}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
@@ -83,12 +82,12 @@ export function CartContent() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 text-muted-foreground hover:text-destructive"
-                onClick={() => removeItem(item.id, item.color)}
+                className="h-8 w-8 sm:h-9 sm:w-9 text-muted-foreground hover:text-destructive"
+                onClick={() => removeItem(item.id, item.selectedColor)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
-              <p className="font-medium text-foreground tracking-wide">
+              <p className="font-medium text-sm sm:text-base text-foreground tracking-wide">
                 {formatPrice(item.price * item.quantity)}
               </p>
             </div>

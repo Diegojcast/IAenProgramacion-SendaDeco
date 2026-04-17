@@ -1,6 +1,7 @@
 /**
- * Punto de entrada de datos y dominio (compatibilidad con imports @/lib/data).
- * Tipos → /types · Mock → /data · Cálculos → /lib/delivery.ts
+ * lib/data.ts — shared type and logic re-exports.
+ * Hardcoded mock data has been removed; all data now comes from the database
+ * via /lib/repositories/*.
  */
 
 export type {
@@ -12,8 +13,6 @@ export type {
   OrderStatus,
   FulfillmentSnapshot,
 } from "@/types"
-
-export { products, categories, colorOptions, colors } from "@/data"
 
 export {
   calculateProductDeliveryTime,

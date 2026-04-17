@@ -8,12 +8,18 @@ export type ProductCategory = "macrame" | "cemento" | "velas"
 /** IDs de color disponibles como variantes en catálogo */
 export type ProductColorId = "crudo" | "gris" | "beige" | "terracota"
 
+/** Stock + color por variante */
+export type ProductVariant = {
+  colorSlug: string
+  stock: number
+}
+
 /**
  * Datos de inventario / insumos para calcular plazos (hoy opcional; mañana vendrá de API o BOM).
- * Valores por defecto conservan el comportamiento actual solo con `product.stock`.
+ * Valores por defecto conservan el comportamiento actual solo con `product.variants`.
  */
 export type FulfillmentSnapshot = {
-  /** Unidades terminadas listas para despacho (default: `product.stock`) */
+  /** Unidades terminadas listas para despacho (suma de todas las variantes con stock > 0) */
   finishedStock: number
   /**
    * Si hay insumos suficientes para fabricar (futuro: validación contra depósito / receta).
@@ -35,22 +41,25 @@ export type FulfillmentSnapshot = {
 export type Product = {
   id: string
   name: string
-  category: ProductCategory
+  /** Categorías del producto (slugs) — puede pertenecer a varias */
+  categories: string[]
   /** Precio en pesos argentinos */
   price: number
-  stock: number
+  /** production_time y drying_time se almacenan en HORAS (Float) */
   production_time: number
   drying_time: number
-  /** Variantes de color disponibles para este producto */
-  colors: readonly ProductColorId[]
-  /** Variante mostrada por defecto en listados / imagen principal */
-  color: ProductColorId
-  image: string
+  /** Variantes de color con stock individual */
+  variants: ProductVariant[]
   description: string
+  featured: boolean
+  /** IDs de product images (binary, served via /api/images/product/[id]/[imageId]) */
+  imageIds: string[]
 }
 
 export type CartItem = Product & {
   quantity: number
+  /** Color slug selected by the user when adding to cart */
+  selectedColor: string
 }
 
 export type OrderStatus =

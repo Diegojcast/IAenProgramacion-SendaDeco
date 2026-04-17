@@ -1,45 +1,56 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Minus, Plus, Truck, Hand } from "lucide-react"
-import { type Product, colors, formatProductDeliveryLabel, formatPrice } from "@/lib/data"
+import type { Product } from "@/types"
+import type { ColorRow } from "@/lib/repositories/colors"
+import { formatProductDeliveryLabel, formatPrice } from "@/lib/data"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
+import { ProductImageCarousel } from "@/components/product/product-image-carousel"
 import { cn } from "@/lib/utils"
 
 type ProductDetailProps = {
   product: Product
+  colorOptions: ColorRow[]
 }
 
-export function ProductDetail({ product }: ProductDetailProps) {
+export function ProductDetail({ product, colorOptions }: ProductDetailProps) {
   const router = useRouter()
   const { addItem } = useCart()
   const [quantity, setQuantity] = useState(1)
-  const [selectedColor, setSelectedColor] = useState(product.color)
-  
+
+  // Pick first variant with stock, or fallback to first variant
+  const defaultVariant =
+    product.variants.find((v) => v.stock > 0) ?? product.variants[0]
+  const [selectedColor, setSelectedColor] = useState<string>(defaultVariant?.colorSlug ?? "")
+
   const deliveryLabel = formatProductDeliveryLabel(product)
-  const variantColors = colors.filter((c) => product.colors.includes(c.id))
+
+  // Only show color swatches for variants the product actually has
+  const variantSlugs = new Set(product.variants.map((v) => v.colorSlug))
+  const variantColors = colorOptions.filter((c) => variantSlugs.has(c.slug))
+
+  // Map colorSlug → stock for fast lookups in UI
+  const stockByColor = Object.fromEntries(product.variants.map((v) => [v.colorSlug, v.stock]))
+  const selectedStock = stockByColor[selectedColor] ?? 0
 
   const handleAddToCart = () => {
-    addItem({ ...product, color: selectedColor }, quantity)
+    addItem({ ...product, selectedColor }, quantity)
     router.push("/carrito")
   }
 
   return (
     <div className="grid md:grid-cols-2 gap-10 md:gap-14 lg:gap-20 items-start">
-      {/* Product Image */}
-      <div className="relative aspect-square overflow-hidden rounded-3xl bg-muted ring-1 ring-border/40 shadow-sm shadow-foreground/[0.04]">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 50vw"
-          priority
-        />
-      </div>
+      {/* Product Images */}
+      <ProductImageCarousel
+        productId={product.id}
+        imageIds={product.imageIds}
+        alt={product.name}
+        className="aspect-square"
+        priority
+      />
 
       {/* Product Info */}
       <div className="flex flex-col pt-2 md:pt-6">
@@ -58,23 +69,34 @@ export function ProductDetail({ product }: ProductDetailProps) {
         <div className="mt-10">
           <h3 className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground mb-4">
             Color
+            {selectedColor && (
+              <span className="ml-3 normal-case tracking-normal text-foreground/70">
+                {stockByColor[selectedColor] > 0
+                  ? `· ${stockByColor[selectedColor]} disponible${stockByColor[selectedColor] !== 1 ? "s" : ""}`
+                  : "· Sin stock"}
+              </span>
+            )}
           </h3>
           <div className="flex flex-wrap gap-4">
-            {variantColors.map((color) => (
-              <button
-                key={color.id}
-                type="button"
-                onClick={() => setSelectedColor(color.id as typeof selectedColor)}
-                className={cn(
-                  "h-11 w-11 rounded-full border-2 transition-all duration-300 shadow-inner",
-                  selectedColor === color.id
-                    ? "border-primary ring-2 ring-primary/25 ring-offset-4 ring-offset-background scale-105"
-                    : "border-border/80 hover:border-primary/40"
-                )}
-                style={{ backgroundColor: color.hex }}
-                title={color.name}
-              />
-            ))}
+            {variantColors.map((color) => {
+              const colorStock = stockByColor[color.slug] ?? 0
+              return (
+                <button
+                  key={color.id}
+                  type="button"
+                  onClick={() => setSelectedColor(color.slug)}
+                  className={cn(
+                    "relative h-11 w-11 rounded-full border-2 transition-all duration-300 shadow-inner",
+                    selectedColor === color.slug
+                      ? "border-primary ring-2 ring-primary/25 ring-offset-4 ring-offset-background scale-105"
+                      : "border-border/80 hover:border-primary/40",
+                    colorStock === 0 && "opacity-40"
+                  )}
+                  style={{ backgroundColor: color.hex ?? undefined }}
+                  title={colorStock > 0 ? color.name : `${color.name} — sin stock`}
+                />
+              )
+            })}
           </div>
         </div>
 
@@ -117,8 +139,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
           size="lg"
           className="mt-12 w-full md:w-auto md:min-w-[240px]"
           onClick={handleAddToCart}
+          disabled={selectedStock === 0 && product.variants.length > 0}
         >
-          Agregar al carrito
+          {selectedStock === 0 && product.variants.length > 0
+            ? "Sin stock en este color"
+            : "Agregar al carrito"}
         </Button>
 
         {/* Description */}

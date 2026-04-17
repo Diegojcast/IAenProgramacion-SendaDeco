@@ -4,8 +4,11 @@ import { CategoriesSection } from "@/components/home/categories-section"
 import { FeaturedProducts } from "@/components/home/featured-products"
 import { GiftRecommendation } from "@/components/home/gift-recommendation"
 import { Footer } from "@/components/footer"
+import { getProducts } from "@/lib/repositories/products"
 
-export default function HomePage() {
+export default async function HomePage() {
+  const products = await getProducts()
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -13,7 +16,7 @@ export default function HomePage() {
         <HeroSection />
         <CategoriesSection />
         <FeaturedProducts />
-        <GiftRecommendation />
+        <GiftRecommendation products={products} />
       </main>
       <Footer />
     </div>

@@ -1,18 +1,22 @@
 "use client"
 
 import { useSearchParams } from "next/navigation"
-import { products } from "@/lib/data"
+import type { Product } from "@/types"
 import { ProductCard } from "@/components/product-card"
 
-export function ProductGrid() {
+interface ProductGridProps {
+  products: Product[]
+}
+
+export function ProductGrid({ products }: ProductGridProps) {
   const searchParams = useSearchParams()
   
   const category = searchParams.get("category")
   const color = searchParams.get("color")
 
   const filteredProducts = products.filter((product) => {
-    if (category && product.category !== category) return false
-    if (color && product.color !== color) return false
+    if (category && !product.categories.includes(category)) return false
+    if (color && !product.variants.some((v) => v.colorSlug === color)) return false
     return true
   })
 
@@ -30,7 +34,7 @@ export function ProductGrid() {
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 lg:gap-10">
       {filteredProducts.map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}

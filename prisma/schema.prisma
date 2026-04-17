@@ -1,0 +1,312 @@
+// Prisma schema — Senda Deco
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────────
+// CATEGORY
+// ──────────────────────────────────────────────
+
+model Category {
+  id          String             @id @default(cuid())
+  name        String             @unique
+  slug        String             @unique
+  // Legacy URL field kept for seed compatibility; binary image takes precedence
+  image       String?
+  // Binary image stored in DB
+  imageData   Bytes?
+  imageMime   String?
+  imageWidth  Int?
+  imageHeight Int?
+  // Visibility
+  enabled     Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  products    ProductCategory[]
+  workers     WorkerCategory[]
+  productSteps ProductStep[]
+}
+
+// ──────────────────────────────────────────────
+// COLOR
+// ──────────────────────────────────────────────
+
+model Color {
+  id        String         @id @default(cuid())
+  name      String         @unique
+  slug      String         @unique
+  hex       String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  productColors ProductColor[]
+}
+
+// ──────────────────────────────────────────────
+// MATERIAL
+// ──────────────────────────────────────────────
+
+model Material {
+  id        String            @id @default(cuid())
+  name      String            @unique
+  unit      String            @default("unidades") // "kg" | "metros" | "unidades"
+  stock     Float             @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  products  ProductMaterial[]
+}
+
+// ──────────────────────────────────────────────
+// PRODUCT
+// ──────────────────────────────────────────────
+
+model Product {
+  id              String            @id @default(cuid())
+  name            String
+  price           Float
+  // Deprecated: use ProductStep instead.
+  // Kept for backward-compatibility with existing rows; new products should use steps.
+  production_time Float             @default(0)
+  drying_time     Float             @default(0)
+  description     String
+  active          Boolean           @default(true)
+  featured        Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Many-to-many with Category
+  categories      ProductCategory[]
+  // Per-color variant stock
+  colors          ProductColor[]
+  materials       ProductMaterial[]
+  orderItems      OrderItem[]
+  images          ProductImage[]
+  steps           ProductStep[]
+}
+
+// ── Production steps ──────────────────────────────────────────────────────────
+
+model ProductStep {
+  id                  String    @id @default(cuid())
+  productId           String
+  name                String
+  order               Int       @default(0)
+  durationHours       Float     @default(0)
+  // Optional: category of worker required for this step (null = no skill required)
+  requiredCategoryId  String?
+
+  product             Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  requiredCategory    Category? @relation(fields: [requiredCategoryId], references: [id], onDelete: SetNull)
+
+  @@index([productId, order])
+}
+
+// ── Junction: Product ↔ Category (many-to-many) ──
+
+model ProductCategory {
+  productId  String
+  categoryId String
+
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([productId, categoryId])
+}
+
+// ── Junction: Product ↔ Color (with per-color stock) ──
+
+model ProductColor {
+  productId String
+  colorId   String
+  stock     Int      @default(0)
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  color     Color    @relation(fields: [colorId], references: [id], onDelete: Cascade)
+
+  @@id([productId, colorId])
+}
+
+// ── Junction: Product ↔ Material (with quantity) ─
+
+model ProductMaterial {
+  productId  String
+  materialId String
+  quantity   Float    @default(1)
+
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  material   Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@id([productId, materialId])
+}
+
+// ──────────────────────────────────────────────
+// ORDER
+// ──────────────────────────────────────────────
+
+model Order {
+  id             String      @id @default(cuid())
+  status         String      @default("pendiente") // "pendiente" | "en_produccion" | "listo" | "enviado" | "entregado" | "cancelado"
+  total          Float
+  deliveryTime   String
+  deliveryMethod String      // "envio" | "retiro"
+  paymentMethod  String      // "mercadopago" | "transferencia" | "efectivo"
+
+  nombre         String
+  email          String
+  telefono       String
+  calle          String?
+  ciudad         String?
+  codigoPostal   String?
+
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  items          OrderItem[]
+  workers        OrderWorker[]
+  orderSteps     OrderStep[]
+}
+
+// ── Production steps snapshot per order ──────────────────────────────────────
+
+model OrderStep {
+  id                  String   @id @default(cuid())
+  orderId             String
+  name                String
+  order               Int      @default(0)
+  durationHours       Float    @default(0)
+  requiredCategoryId  String?
+  completed           Boolean  @default(false)
+  completedAt         DateTime?
+
+  parentOrder         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, order])
+}
+
+// ──────────────────────────────────────────────
+// ORDER ITEM
+// ──────────────────────────────────────────────
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  productId    String
+  quantity     Int
+  price        Float
+  color        String
+  productName  String
+
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product  @relation(fields: [productId], references: [id])
+}
+
+// ──────────────────────────────────────────────
+// PRODUCT IMAGE
+// ──────────────────────────────────────────────
+
+model ProductImage {
+  id          String   @id @default(cuid())
+  productId   String
+  imageData   Bytes
+  imageMime   String   @default("image/webp")
+  imageWidth  Int?
+  imageHeight Int?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// ──────────────────────────────────────────────
+// WORKER
+// ──────────────────────────────────────────────
+
+model Worker {
+  id          String               @id @default(cuid())
+  firstName   String
+  lastName    String
+  email       String               @unique
+  isAdmin     Boolean              @default(false)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  categories          WorkerCategory[]
+  availability        WorkerAvailability[]
+  defaultAvailability WorkerDefaultAvailability[]
+  orders              OrderWorker[]
+}
+
+// ── Junction: Order ↔ Worker (many-to-many) ──
+
+model OrderWorker {
+  orderId  String
+  workerId String
+
+  order    Order  @relation(fields: [orderId],  references: [id], onDelete: Cascade)
+  worker   Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@id([orderId, workerId])
+}
+
+// ── Junction: Worker ↔ Category (many-to-many) ──
+
+model WorkerCategory {
+  workerId   String
+  categoryId String
+
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([workerId, categoryId])
+}
+
+// ──────────────────────────────────────────────
+// WORKER AVAILABILITY
+// ──────────────────────────────────────────────
+
+model WorkerAvailability {
+  id             String   @id @default(cuid())
+  workerId       String
+  date           DateTime @db.Date
+  availableHours Float    @default(0)
+
+  worker         Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, date])
+}
+
+// ──────────────────────────────────────────────
+// WORKER DEFAULT WEEKLY AVAILABILITY
+// ──────────────────────────────────────────────
+
+model WorkerDefaultAvailability {
+  id          String @id @default(cuid())
+  workerId    String
+  dayOfWeek   Int    // 0 = Sunday … 6 = Saturday
+  hours       Float  @default(0)
+
+  worker      Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, dayOfWeek])
+}
+
+// ──────────────────────────────────────────────
+// HOMEPAGE SETTINGS (singleton row: id = "main")
+// ──────────────────────────────────────────────
+
+model HomepageSettings {
+  id              String  @id @default("main")
+  heroImageData   Bytes?
+  heroImageMime   String?
+  heroAlt         String  @default("Decoración hecha a mano")
+  updatedAt       DateTime @updatedAt
+}

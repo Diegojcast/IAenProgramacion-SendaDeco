@@ -2,7 +2,8 @@ import { notFound } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProductDetail } from "@/components/product/product-detail"
-import { products } from "@/lib/data"
+import { getProductById } from "@/lib/repositories/products"
+import { getColors } from "@/lib/repositories/colors"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -10,7 +11,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params
-  const product = products.find((p) => p.id === id)
+  const product = await getProductById(id)
   
   if (!product) {
     return { title: "Producto no encontrado | Senda Deco" }
@@ -24,7 +25,10 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function ProductoPage({ params }: Props) {
   const { id } = await params
-  const product = products.find((p) => p.id === id)
+  const [product, colorOptions] = await Promise.all([
+    getProductById(id),
+    getColors(),
+  ])
 
   if (!product) {
     notFound()
@@ -33,8 +37,8 @@ export default async function ProductoPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container py-12 md:py-20 px-5 md:px-8">
-        <ProductDetail product={product} />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <ProductDetail product={product} colorOptions={colorOptions} />
       </main>
       <Footer />
     </div>

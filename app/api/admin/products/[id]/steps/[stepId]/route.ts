@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { updateProductStep, deleteProductStep } from "@/lib/repositories/admin/product-steps"
+
+type Params = { params: Promise<{ id: string; stepId: string }> }
+
+/** PATCH /api/admin/products/[id]/steps/[stepId] — update a single step */
+export async function PATCH(request: NextRequest, { params }: Params) {
+  const { stepId } = await params
+  const body = await request.json()
+  const step = await updateProductStep(stepId, {
+    name: body.name,
+    order: body.order,
+    durationHours: body.durationHours,
+    requiredCategoryId: body.requiredCategoryId,
+  })
+  return NextResponse.json({ step })
+}
+
+/** DELETE /api/admin/products/[id]/steps/[stepId] — delete a single step */
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const { stepId } = await params
+  await deleteProductStep(stepId)
+  return NextResponse.json({ ok: true })
+}

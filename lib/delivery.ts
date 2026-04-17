@@ -22,6 +22,13 @@ export type ProductDeliveryEstimate = {
 export type FulfillmentResolver = (item: CartItem) => Partial<FulfillmentSnapshot> | undefined
 
 /**
+ * Stock total del producto: suma de stock de todas las variantes de color.
+ */
+function totalVariantStock(product: Product): number {
+  return product.variants.reduce((sum, v) => sum + v.stock, 0)
+}
+
+/**
  * Combina el catálogo con un snapshot parcial (p. ej. respuesta de un servicio de stock).
  * Punto único para enchufar validación de materiales sin tocar la UI.
  */
@@ -30,7 +37,7 @@ export function resolveFulfillmentSnapshot(
   partial?: Partial<FulfillmentSnapshot>
 ): FulfillmentSnapshot {
   return {
-    finishedStock: partial?.finishedStock ?? product.stock,
+    finishedStock: partial?.finishedStock ?? totalVariantStock(product),
     materialsAvailable: partial?.materialsAvailable ?? true,
     materialLeadDays: Math.max(0, partial?.materialLeadDays ?? 0),
     requestedQuantity: partial?.requestedQuantity,
@@ -49,6 +56,8 @@ function materialWaitDays(snapshot: FulfillmentSnapshot): number {
  *
  * - Stock terminado (`finishedStock` > 0): 1–3 días (insumos no afectan piezas ya hechas).
  * - Sin stock terminado: producción + secado + espera de materiales cuando aplique.
+ *
+ * production_time y drying_time están en HORAS; se convierten a días redondeando hacia arriba.
  */
 export function calculateProductDeliveryTime(
   product: Product,
@@ -60,9 +69,10 @@ export function calculateProductDeliveryTime(
     return { minDays: 1, maxDays: 3, source: "stock", materialDelayDays: 0 }
   }
 
-  const pipeline = product.production_time + product.drying_time
+  const pipelineHours = product.production_time + product.drying_time
+  const pipelineDays = Math.ceil(pipelineHours / 24)
   const materialDelay = materialWaitDays(s)
-  const total = pipeline + materialDelay
+  const total = pipelineDays + materialDelay
 
   return {
     minDays: total,
@@ -135,3 +145,4 @@ export function formatCartDeliveryLabel(items: CartItem[], resolver?: Fulfillmen
   const { minDays, maxDays } = calculateCartDeliveryTime(items, resolver)
   return formatDeliveryRange(minDays, maxDays)
 }
+

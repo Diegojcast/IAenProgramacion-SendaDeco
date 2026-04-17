@@ -15,7 +15,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
-      <div className="container flex h-16 md:h-[4.25rem] items-center justify-between px-5 md:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 md:h-[4.25rem] items-center justify-between w-full">
         <Sheet>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" className="md:hidden">

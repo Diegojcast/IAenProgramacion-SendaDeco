@@ -11,7 +11,7 @@ export default function CarritoPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container py-12 md:py-20 px-5 md:px-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
         <div className="mb-10 md:mb-14">
           <p className="text-[11px] uppercase tracking-[0.3em] text-muted-foreground mb-3">
             Tu selección
