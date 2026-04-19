@@ -34,10 +34,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
 
     async jwt({ token, user }) {
+      // On initial sign-in, persist the email from the user object
       if (user?.email) {
         token.email = user.email
-        // Resolve role once at sign-in time and cache in JWT
-        const email = user.email.toLowerCase()
+      }
+
+      // Always re-derive role if missing (covers first login + token refresh)
+      if (!token.role && token.email) {
+        const email = (token.email as string).toLowerCase()
         if (ADMIN_EMAILS.includes(email)) {
           token.role = "admin"
           token.workerId = null
@@ -50,6 +54,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.workerId = worker?.id ?? null
         }
       }
+
       return token
     },
 
