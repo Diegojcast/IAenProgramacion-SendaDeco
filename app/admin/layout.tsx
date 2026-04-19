@@ -6,12 +6,21 @@ import { AdminSidebar } from "@/components/admin/admin-sidebar"
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const session = await auth()
 
+  // @ts-expect-error – custom field
+  const role: string | undefined = session?.user?.role
+
+  // No session at all → go to login
   if (!session) {
     redirect("/login")
   }
 
-  // @ts-expect-error – custom field
-  if (session.user?.role !== "admin") {
+  // Session exists but role not resolved (stale token) → force fresh login
+  if (!role) {
+    redirect("/api/auth/signout?callbackUrl=/login")
+  }
+
+  // Authenticated but not an admin → show access denied
+  if (role !== "admin") {
     // Authenticated with Google but not in the allowed list
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">

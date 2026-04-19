@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-import { CartProvider } from '@/lib/cart-context'
+import { Providers } from '@/components/providers'
 import './globals.css'
 
 const cormorant = Cormorant_Garamond({
@@ -52,9 +52,9 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${cormorant.variable} ${inter.variable}`} data-scroll-behavior="smooth">
       <body className="font-sans antialiased text-[15px] sm:text-base leading-relaxed">
-        <CartProvider>
+        <Providers>
           {children}
-        </CartProvider>
+        </Providers>
         <Analytics />
       </body>
     </html>

@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { Menu, ShoppingCart } from "lucide-react"
+import { Menu, ShoppingCart, LayoutDashboard } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
+import { useSession } from "next-auth/react"
 import {
   Sheet,
   SheetContent,
@@ -12,6 +13,9 @@ import {
 
 export function Header() {
   const { itemCount } = useCart()
+  const { data: session } = useSession()
+  // @ts-expect-error – custom field
+  const isAdmin = session?.user?.role === "admin"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/85 backdrop-blur-md supports-[backdrop-filter]:bg-background/75">
@@ -61,6 +65,14 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-1">
+          {isAdmin && (
+            <Link href="/admin">
+              <Button variant="ghost" size="icon" className="relative text-muted-foreground" title="Panel de administración">
+                <LayoutDashboard className="h-5 w-5" />
+                <span className="sr-only">Admin</span>
+              </Button>
+            </Link>
+          )}
           <Link href="/carrito">
             <Button variant="ghost" size="icon" className="relative text-muted-foreground">
               <ShoppingCart className="h-5 w-5" />
