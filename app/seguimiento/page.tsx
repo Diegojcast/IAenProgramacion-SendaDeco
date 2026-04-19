@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { OrderTracking } from "@/components/order/order-tracking"
@@ -16,7 +17,9 @@ export default function SeguimientoPage() {
           <h1 className="font-serif text-3xl md:text-4xl font-semibold text-foreground mb-8 text-center">
             Seguimiento de pedido
           </h1>
-          <OrderTracking />
+          <Suspense>
+            <OrderTracking />
+          </Suspense>
         </div>
       </main>
       <Footer />
