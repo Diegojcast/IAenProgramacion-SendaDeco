@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   // Session exists but role not resolved (stale token) → force fresh login
   if (!role) {
-    redirect("/api/auth/signout?callbackUrl=/login")
+    redirect("/login")
   }
 
   // Authenticated but not an admin → show access denied

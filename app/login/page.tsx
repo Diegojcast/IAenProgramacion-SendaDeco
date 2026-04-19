@@ -19,9 +19,10 @@ interface Props {
 }
 
 export default async function LoginPage({ searchParams }: Props) {
-  // Already authenticated → go straight to admin
+  // Already authenticated with a valid role → go straight to admin
   const session = await auth()
-  if (session) redirect("/admin")
+  // @ts-expect-error – custom field
+  if (session?.user?.role === "admin") redirect("/admin")
 
   const { error } = await searchParams
 
