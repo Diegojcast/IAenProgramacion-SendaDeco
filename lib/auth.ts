@@ -52,6 +52,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return token
     },
+
+    session({ session, token }) {
+      if (token.email) session.user.email = token.email as string
+      // @ts-expect-error – custom field
+      session.user.role = token.role as string
+      // @ts-expect-error – custom field
+      session.user.workerId = token.workerId as string | null
+      return session
+    },
   },
 })
 

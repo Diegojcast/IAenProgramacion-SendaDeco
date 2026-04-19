@@ -16,21 +16,6 @@ export function Footer() {
             Senda Deco
           </Link>
 
-          <nav className="flex flex-wrap justify-center gap-x-10 gap-y-3 text-sm text-muted-foreground">
-            <Link href="/productos" className="hover:text-foreground transition-colors duration-300">
-              Productos
-            </Link>
-            <Link href="/productos?category=macrame" className="hover:text-foreground transition-colors duration-300">
-              Macramé
-            </Link>
-            <Link href="/productos?category=cemento" className="hover:text-foreground transition-colors duration-300">
-              Cemento
-            </Link>
-            <Link href="/productos?category=velas" className="hover:text-foreground transition-colors duration-300">
-              Velas
-            </Link>
-          </nav>
-
           {/* Contact section */}
           <div className="flex flex-col items-center gap-4">
             <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Contacto</p>
