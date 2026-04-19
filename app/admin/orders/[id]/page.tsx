@@ -3,11 +3,13 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { adminGetOrderById } from "@/lib/repositories/admin/orders"
 import { adminGetWorkers } from "@/lib/repositories/admin/workers"
+import { getScheduledTasksForOrder, groupScheduledTasks } from "@/lib/repositories/scheduled-tasks"
 import { AdminPageHeader } from "@/components/admin/admin-page-header"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { OrderStatusUpdater } from "@/components/admin/orders/order-status-updater"
 import { OrderWorkers } from "@/components/admin/orders/order-workers"
+import { ScheduleOrderButton } from "@/components/admin/orders/schedule-order-button"
 import { formatPrice } from "@/lib/format"
 
 type Props = { params: Promise<{ id: string }> }
@@ -25,7 +27,11 @@ const PAYMENT_LABELS: Record<string, string> = {
 
 export default async function AdminOrderDetailPage({ params }: Props) {
   const { id } = await params
-  const [order, allWorkers] = await Promise.all([adminGetOrderById(id), adminGetWorkers()])
+  const [order, allWorkers, scheduledTasks] = await Promise.all([
+    adminGetOrderById(id),
+    adminGetWorkers(),
+    getScheduledTasksForOrder(id),
+  ])
   if (!order) notFound()
 
   return (
@@ -148,6 +154,61 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           allWorkers={allWorkers}
           assignedWorkerIds={order.workers?.map((w) => w.id) ?? []}
         />
+
+        {/* ── Section 5: Scheduling ─────────────────────────────────────── */}
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              Agenda de producción
+            </p>
+            <ScheduleOrderButton
+              orderId={order.id}
+              hasWorkers={(order.workers?.length ?? 0) > 0}
+            />
+          </div>
+
+          {scheduledTasks.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Aún no se generó la agenda para este pedido. Hacé clic en «Generar agenda» para
+              programar las tareas según la disponibilidad de los operarios.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {groupScheduledTasks(scheduledTasks).map((t) => (
+                <div
+                  key={t.ids[0]}
+                  className={`flex items-center gap-3 text-sm py-2 px-3 rounded-lg border ${
+                    t.completed
+                      ? "bg-muted/40 border-border/50 text-muted-foreground"
+                      : "bg-card border-border"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full shrink-0 ${
+                      t.completed ? "bg-emerald-500" : "bg-muted-foreground/40"
+                    }`}
+                  />
+                  <span className="flex-1 font-medium truncate">{t.orderStep.name}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {new Date(t.date).toLocaleDateString("es-AR", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {t.hoursAssigned % 1 === 0 ? t.hoursAssigned : t.hoursAssigned.toFixed(1)} hs
+                  </span>
+                  {t.worker && (
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {t.worker.firstName} {t.worker.lastName}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

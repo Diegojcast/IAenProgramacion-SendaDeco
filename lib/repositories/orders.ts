@@ -90,9 +90,9 @@ export async function createOrder(order: Order): Promise<Order> {
     include: { items: { include: { product: true } } },
   })
 
-  // Snapshot production steps from every product in this order
-  const productIds = order.items.map((item) => item.id)
-  await createOrderStepsFromProducts(created.id, productIds)
+  // Snapshot production steps from every product in this order, one step per unit
+  const orderItems = created.items.map((item) => ({ productId: item.productId, quantity: item.quantity, itemId: item.id }))
+  await createOrderStepsFromProducts(created.id, orderItems)
 
   return toOrder(created as NonNullable<DbOrderWithItems>)
 }

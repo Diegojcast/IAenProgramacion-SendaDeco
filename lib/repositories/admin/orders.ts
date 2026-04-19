@@ -21,10 +21,12 @@ export type AdminOrder = {
     price: number
     color: string
     productName: string
+    units?: { id: string; unitIndex: number }[]
   }[]
   workers?: { id: string; firstName: string; lastName: string }[]
   orderSteps?: {
     id: string
+    orderItemUnitId: string | null
     name: string
     order: number
     durationHours: number
@@ -53,7 +55,7 @@ export async function adminGetOrderById(id: string): Promise<AdminOrder | null> 
   const o = await prisma.order.findUnique({
     where: { id },
     include: {
-      items: true,
+      items: { include: { units: { orderBy: { unitIndex: "asc" } } } },
       workers: { include: { worker: { select: { id: true, firstName: true, lastName: true } } } },
       orderSteps: { orderBy: { order: "asc" } },
     },
@@ -61,8 +63,8 @@ export async function adminGetOrderById(id: string): Promise<AdminOrder | null> 
   if (!o) return null
 
   // Backfill steps for orders created before this feature existed
-  const productIds = o.items.map((item) => item.productId)
-  const orderSteps = await ensureOrderSteps(o.id, productIds)
+  const orderItems = o.items.map((item) => ({ productId: item.productId, quantity: item.quantity, itemId: item.id }))
+  const orderSteps = await ensureOrderSteps(o.id, orderItems)
 
   return {
     ...o,
@@ -75,9 +77,28 @@ export async function adminUpdateOrderStatus(id: string, status: string) {
   return prisma.order.update({ where: { id }, data: { status } })
 }
 
-/** Replace all worker assignments for an order atomically. */
+/** Replace all worker assignments for an order atomically.
+ *  Scheduled tasks for any removed workers are deleted in the same transaction.
+ */
 export async function assignWorkersToOrder(orderId: string, workerIds: string[]) {
+  // Find workers currently assigned so we can delete their tasks if removed
+  const existing = await prisma.orderWorker.findMany({
+    where: { orderId },
+    select: { workerId: true },
+  })
+  const removedWorkerIds = existing
+    .map((ow) => ow.workerId)
+    .filter((id) => !workerIds.includes(id))
+
   await prisma.$transaction([
+    // Delete scheduled tasks for removed workers
+    ...(removedWorkerIds.length > 0
+      ? [
+          prisma.scheduledTask.deleteMany({
+            where: { orderId, workerId: { in: removedWorkerIds } },
+          }),
+        ]
+      : []),
     prisma.orderWorker.deleteMany({ where: { orderId } }),
     prisma.orderWorker.createMany({
       data: workerIds.map((workerId) => ({ orderId, workerId })),
@@ -85,9 +106,10 @@ export async function assignWorkersToOrder(orderId: string, workerIds: string[])
   ])
 }
 
-/** Cancel an order and remove all worker assignments. */
+/** Cancel an order and remove all worker assignments and scheduled tasks. */
 export async function cancelOrder(orderId: string) {
   await prisma.$transaction([
+    prisma.scheduledTask.deleteMany({ where: { orderId } }),
     prisma.orderWorker.deleteMany({ where: { orderId } }),
     prisma.order.update({ where: { id: orderId }, data: { status: "cancelado" } }),
   ])
@@ -103,7 +125,7 @@ export async function getOrdersByWorker(workerId: string): Promise<AdminOrder[]>
     include: {
       order: {
         include: {
-          items: true,
+          items: { include: { units: { orderBy: { unitIndex: "asc" } } } },
           workers: { include: { worker: { select: { id: true, firstName: true, lastName: true } } } },
           orderSteps: { orderBy: { order: "asc" } },
         },
@@ -115,8 +137,8 @@ export async function getOrdersByWorker(workerId: string): Promise<AdminOrder[]>
   // Backfill steps for any order that doesn't have them yet
   const orders = await Promise.all(
     rows.map(async (ow) => {
-      const productIds = ow.order.items.map((item) => item.productId)
-      const orderSteps = await ensureOrderSteps(ow.order.id, productIds)
+      const orderItems = ow.order.items.map((item) => ({ productId: item.productId, quantity: item.quantity, itemId: item.id }))
+      const orderSteps = await ensureOrderSteps(ow.order.id, orderItems)
       return {
         ...ow.order,
         workers: ow.order.workers.map((w) => w.worker),

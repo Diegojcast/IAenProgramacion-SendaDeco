@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Minus, Plus, Trash2, Truck, ShoppingBag } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { formatCartDeliveryLabel, formatPrice } from "@/lib/data"
@@ -9,6 +10,7 @@ import { ProductImageCarousel } from "@/components/product/product-image-carouse
 
 export function CartContent() {
   const { items, updateQuantity, removeItem, total } = useCart()
+  const router = useRouter()
 
   if (items.length === 0) {
     return (
@@ -125,6 +127,21 @@ export function CartContent() {
               Ir a pagar
             </Button>
           </Link>
+
+          <Button
+            variant="outline"
+            className="w-full mt-3"
+            size="lg"
+            onClick={() => {
+              if (window.history.length > 1) {
+                router.back()
+              } else {
+                router.push("/productos")
+              }
+            }}
+          >
+            Seguir comprando
+          </Button>
 
           {/* Delivery Summary */}
           <div className="mt-8 p-5 bg-secondary/40 rounded-2xl border border-border/40">

@@ -170,24 +170,39 @@ model Order {
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
-  items          OrderItem[]
-  workers        OrderWorker[]
-  orderSteps     OrderStep[]
+  items           OrderItem[]
+  workers         OrderWorker[]
+  orderSteps      OrderStep[]
+  scheduledTasks  ScheduledTask[]
 }
 
 // ── Production steps snapshot per order ──────────────────────────────────────
 
+model OrderItemUnit {
+  id          String    @id @default(cuid())
+  orderItemId String
+  unitIndex   Int       // 1-based (1, 2, 3…)
+
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  steps       OrderStep[]
+
+  @@index([orderItemId])
+}
+
 model OrderStep {
-  id                  String   @id @default(cuid())
+  id                  String         @id @default(cuid())
   orderId             String
+  orderItemUnitId     String?
   name                String
-  order               Int      @default(0)
-  durationHours       Float    @default(0)
+  order               Int            @default(0)
+  durationHours       Float          @default(0)
   requiredCategoryId  String?
-  completed           Boolean  @default(false)
+  completed           Boolean        @default(false)
   completedAt         DateTime?
 
-  parentOrder         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  parentOrder         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItemUnit       OrderItemUnit? @relation(fields: [orderItemUnitId], references: [id], onDelete: SetNull)
+  scheduledTasks      ScheduledTask[]
 
   @@index([orderId, order])
 }
@@ -207,6 +222,7 @@ model OrderItem {
 
   order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product      Product  @relation(fields: [productId], references: [id])
+  units        OrderItemUnit[]
 }
 
 // ──────────────────────────────────────────────
@@ -243,6 +259,7 @@ model Worker {
   availability        WorkerAvailability[]
   defaultAvailability WorkerDefaultAvailability[]
   orders              OrderWorker[]
+  scheduledTasks      ScheduledTask[]
 }
 
 // ── Junction: Order ↔ Worker (many-to-many) ──
@@ -303,6 +320,30 @@ model WorkerDefaultAvailability {
 // HOMEPAGE SETTINGS (singleton row: id = "main")
 // ──────────────────────────────────────────────
 
+// ──────────────────────────────────────────────
+// SCHEDULED TASK
+// ──────────────────────────────────────────────
+
+model ScheduledTask {
+  id            String    @id @default(cuid())
+  orderId       String
+  orderStepId   String
+  workerId      String?
+  date          DateTime  @db.Date
+  hoursAssigned Float
+  completed     Boolean   @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  parentOrder   Order     @relation(fields: [orderId],     references: [id], onDelete: Cascade)
+  orderStep     OrderStep @relation(fields: [orderStepId], references: [id], onDelete: Cascade)
+  worker        Worker?   @relation(fields: [workerId],   references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([workerId, date])
+}
+
+// ──────────────────────────────────────────────
 model HomepageSettings {
   id              String  @id @default("main")
   heroImageData   Bytes?

@@ -14,9 +14,9 @@ export default async function HomePage() {
       <Header />
       <main>
         <HeroSection />
+        <GiftRecommendation products={products} />
         <CategoriesSection />
         <FeaturedProducts />
-        <GiftRecommendation products={products} />
       </main>
       <Footer />
     </div>

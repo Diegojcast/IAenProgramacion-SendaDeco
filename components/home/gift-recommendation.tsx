@@ -50,7 +50,7 @@ export function GiftRecommendation({ products }: GiftRecommendationProps) {
   }
 
   return (
-    <section className="py-20 md:py-28">
+    <section className="py-20 md:py-28 pb-10 md:pb-14">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-border/50 bg-card/80 p-10 md:p-16 shadow-sm shadow-foreground/[0.03] text-center">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-5">

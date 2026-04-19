@@ -4,9 +4,11 @@ import { useState } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { WorkerOrderStatus } from "@/components/worker/worker-order-status"
+import { WorkerSchedule } from "@/components/worker/worker-schedule"
 import { formatPrice } from "@/lib/format"
 import { Package, ChevronRight } from "lucide-react"
 import type { AdminOrder } from "@/lib/repositories/admin/orders"
+import type { ScheduledTaskRow } from "@/lib/repositories/scheduled-tasks"
 
 const DELIVERY_LABELS: Record<string, string> = {
   envio: "Envío a domicilio",
@@ -24,10 +26,14 @@ interface MiTrabajoOrdersProps {
   defaultWorkerId: string | null
   /** Pre-fetched orders for the default worker */
   initialOrders: AdminOrder[]
+  /** Pre-fetched scheduled tasks for the default worker */
+  initialSchedule?: ScheduledTaskRow[]
   /** Only present for admins */
   allWorkers?: WorkerOption[]
   /** All orders keyed by workerId — pre-fetched server-side for admins */
   workerOrdersMap?: Record<string, AdminOrder[]>
+  /** All scheduled tasks keyed by workerId — pre-fetched server-side for admins */
+  workerScheduleMap?: Record<string, ScheduledTaskRow[]>
   /** Whether the current user is an admin */
   isAdmin?: boolean
 }
@@ -104,15 +110,22 @@ function OrderList({ orders, showPrice }: { orders: AdminOrder[]; showPrice: boo
 export function MiTrabajoOrders({
   defaultWorkerId,
   initialOrders,
+  initialSchedule = [],
   allWorkers,
   workerOrdersMap,
+  workerScheduleMap,
   isAdmin,
 }: MiTrabajoOrdersProps) {
   const [selectedId, setSelectedId] = useState<string | null>(defaultWorkerId)
+  const [tab, setTab] = useState<"pedidos" | "agenda">("pedidos")
 
   const orders = selectedId
     ? (workerOrdersMap?.[selectedId] ?? (selectedId === defaultWorkerId ? initialOrders : []))
     : initialOrders
+
+  const schedule = selectedId
+    ? (workerScheduleMap?.[selectedId] ?? (selectedId === defaultWorkerId ? initialSchedule : []))
+    : initialSchedule
 
   const orderCount = orders.length
 
@@ -159,7 +172,29 @@ export function MiTrabajoOrders({
         )}
       </div>
 
-      <OrderList orders={orders} showPrice={!!isAdmin} />
+      {/* ── Tab bar ─────────────────────────────────────────────────── */}
+      <div className="flex gap-1 border-b border-border">
+        {(["pedidos", "agenda"] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px capitalize ${
+              tab === t
+                ? "border-primary text-primary"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t === "pedidos" ? `Pedidos (${orderCount})` : `Agenda (${schedule.length})`}
+          </button>
+        ))}
+      </div>
+
+      {tab === "pedidos" ? (
+        <OrderList orders={orders} showPrice={!!isAdmin} />
+      ) : (
+        <WorkerSchedule tasks={schedule} />
+      )}
     </div>
   )
 }

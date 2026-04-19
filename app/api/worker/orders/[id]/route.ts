@@ -10,7 +10,8 @@ type Params = { params: Promise<{ id: string }> }
 export async function PATCH(request: NextRequest, { params }: Params) {
   const session = await auth()
   // @ts-expect-error – extended session type
-  if (!session || session.user.role !== "worker") {
+  const role = session?.user?.role as string | undefined
+  if (!session || (role !== "worker" && role !== "admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 

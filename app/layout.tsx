@@ -50,7 +50,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${cormorant.variable} ${inter.variable}`}>
+    <html lang="es" className={`${cormorant.variable} ${inter.variable}`} data-scroll-behavior="smooth">
       <body className="font-sans antialiased text-[15px] sm:text-base leading-relaxed">
         <CartProvider>
           {children}

@@ -43,6 +43,7 @@ export function CheckoutForm({ colorOptions }: { colorOptions: ColorRow[] }) {
   const { items, total, clearCart, setCurrentOrder } = useCart()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [shouldRedirect, setShouldRedirect] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutFormSchema),
@@ -85,6 +86,7 @@ export function CheckoutForm({ colorOptions }: { colorOptions: ColorRow[] }) {
 
   const onSubmit = (values: CheckoutFormValues) => {
     setIsSubmitting(true)
+    setSubmitError(null)
 
     const ship =
       values.deliveryMethod === "envio" ? CHECKOUT_SHIPPING_ARS : 0
@@ -130,15 +132,10 @@ export function CheckoutForm({ colorOptions }: { colorOptions: ColorRow[] }) {
       .then(({ order: saved }) => {
         setCurrentOrder(saved)
         clearCart()
-        router.push("/confirmacion")
+        router.push(`/confirmacion?orderId=${saved.id}`)
       })
       .catch(() => {
-        // Fallback: show confirmation with local order even if DB write fails
-        setCurrentOrder(order)
-        clearCart()
-        router.push("/confirmacion")
-      })
-      .finally(() => {
+        setSubmitError("Hubo un error al procesar tu pedido. Por favor, intentá de nuevo.")
         setIsSubmitting(false)
       })
   }
@@ -447,6 +444,10 @@ export function CheckoutForm({ colorOptions }: { colorOptions: ColorRow[] }) {
             >
               {isSubmitting ? "Procesando..." : "Confirmar compra"}
             </Button>
+
+            {submitError && (
+              <p className="mt-3 text-sm text-destructive text-center">{submitError}</p>
+            )}
           </div>
         </div>
       </form>

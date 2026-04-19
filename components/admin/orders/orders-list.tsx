@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Eye } from "lucide-react"
 import { AdminPageHeader } from "@/components/admin/admin-page-header"
+import { Badge } from "@/components/ui/badge"
 import {
   AdminTable,
   AdminTableHead,

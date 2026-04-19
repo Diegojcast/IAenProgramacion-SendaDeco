@@ -9,13 +9,15 @@ export const metadata = {
 
 export default function SeguimientoPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="container py-8 px-4">
-        <h1 className="font-serif text-3xl md:text-4xl font-semibold text-foreground mb-8">
-          Seguimiento de pedido
-        </h1>
-        <OrderTracking />
+      <main className="flex flex-1 justify-center px-4 py-12 md:py-20">
+        <div className="w-full max-w-3xl">
+          <h1 className="font-serif text-3xl md:text-4xl font-semibold text-foreground mb-8 text-center">
+            Seguimiento de pedido
+          </h1>
+          <OrderTracking />
+        </div>
       </main>
       <Footer />
     </div>

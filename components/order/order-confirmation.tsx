@@ -7,19 +7,24 @@ import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import { useEffect } from "react"
 
-export function OrderConfirmation() {
+export function OrderConfirmation({ orderId }: { orderId?: string }) {
   const router = useRouter()
   const { currentOrder } = useCart()
 
+  // Prefer the URL orderId, fall back to cart context
+  const displayId = orderId ?? currentOrder?.id
+
   useEffect(() => {
-    if (!currentOrder) {
+    if (!displayId) {
       router.push("/")
     }
-  }, [currentOrder, router])
+  }, [displayId, router])
 
-  if (!currentOrder) {
+  if (!displayId) {
     return null
   }
+
+  const deliveryTime = currentOrder?.deliveryTime
 
   return (
     <div className="max-w-lg mx-auto text-center py-12">
@@ -32,15 +37,17 @@ export function OrderConfirmation() {
       </h1>
 
       <p className="text-muted-foreground mb-2">
-        Número Orden: <span className="font-medium text-foreground">#{currentOrder.id}</span>
+        Número Orden: <span className="font-medium text-foreground">#{displayId}</span>
       </p>
 
-      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-8">
-        <Truck className="h-4 w-4" />
-        <span>Tiempo de entrega: {currentOrder.deliveryTime} días</span>
-      </div>
+      {deliveryTime && (
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-8">
+          <Truck className="h-4 w-4" />
+          <span>Tiempo de entrega: {deliveryTime} días</span>
+        </div>
+      )}
 
-      <Link href={`/seguimiento?order=${currentOrder.id}`}>
+      <Link href={`/seguimiento?order=${displayId}`}>
         <Button size="lg" className="rounded-full px-8">
           Seguir pedido
         </Button>

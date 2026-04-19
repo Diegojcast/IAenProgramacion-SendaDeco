@@ -105,6 +105,15 @@ export default async function MiTrabajoOrderPage({
           <OrderStepList
             orderId={order.id}
             initialSteps={steps}
+            units={order.items.flatMap((item) =>
+              (item.units ?? []).map((u) => ({
+                id: u.id,
+                unitIndex: u.unitIndex,
+                productName: item.productName,
+                color: item.color,
+                totalUnits: item.quantity,
+              }))
+            )}
             canEdit={canEdit}
           />
         </div>

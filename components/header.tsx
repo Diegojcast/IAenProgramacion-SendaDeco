@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Menu, Search, ShoppingCart } from "lucide-react"
+import { Menu, ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 import { Button } from "@/components/ui/button"
 import {
@@ -61,10 +61,6 @@ export function Header() {
         </Link>
 
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="hidden md:flex text-muted-foreground">
-            <Search className="h-5 w-5" />
-            <span className="sr-only">Buscar</span>
-          </Button>
           <Link href="/carrito">
             <Button variant="ghost" size="icon" className="relative text-muted-foreground">
               <ShoppingCart className="h-5 w-5" />
