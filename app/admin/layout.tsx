@@ -1,18 +1,17 @@
 import type { ReactNode } from "react"
 import { redirect } from "next/navigation"
-import { auth, isAdminEmail } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  // Server-side guard: middleware handles unauthenticated users, but we also
-  // verify the email whitelist here so edge-runtime token manipulation can't bypass it.
   const session = await auth()
 
   if (!session) {
     redirect("/login")
   }
 
-  if (!isAdminEmail(session.user?.email)) {
+  // @ts-expect-error – custom field
+  if (session.user?.role !== "admin") {
     // Authenticated with Google but not in the allowed list
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
