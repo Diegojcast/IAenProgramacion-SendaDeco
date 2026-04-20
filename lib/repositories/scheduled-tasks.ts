@@ -97,14 +97,10 @@ type WorkerForScheduling = {
   availability: { date: Date; availableHours: number }[]
 }
 
-function startOfToday(): Date {
-  // Produce UTC midnight for today so it compares correctly with Prisma @db.Date values
-  const now = new Date()
-  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()))
-}
-
 function startOfTomorrow(): Date {
-  return addDays(startOfToday(), 1)
+  // UTC midnight of tomorrow — Prisma @db.Date fields are stored as UTC midnight
+  const now = new Date()
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1))
 }
 
 function addDays(date: Date, days: number): Date {
@@ -127,7 +123,189 @@ function getWorkerBaseHours(worker: WorkerForScheduling, date: Date): number {
 }
 
 /**
- * Auto-schedule an order's steps starting from today.
+ * Safety limit: maximum calendar days the scheduler will look ahead
+ * when searching for worker availability. Prevents infinite loops when
+ * no worker has any availability configured.
+ */
+const SCHEDULING_HORIZON_DAYS = 365
+
+/**
+ * Floating-point epsilon for remaining-hours comparisons.
+ * Avoids creating near-zero tasks due to Float64 rounding.
+ */
+const HOURS_EPSILON = 0.001
+
+type TaskToCreate = {
+  orderId: string
+  orderStepId: string
+  workerId: string | null
+  date: Date
+  hoursAssigned: number
+}
+
+/** Builds a Map<workerId, Map<dateStr, bookedHours>> from existing tasks. */
+function buildCommittedMap(
+  tasks: { workerId: string | null; date: Date; hoursAssigned: number }[]
+): Map<string, Map<string, number>> {
+  const committed = new Map<string, Map<string, number>>()
+  for (const t of tasks) {
+    if (!t.workerId) continue
+    const dateStr = toDateStr(t.date)
+    if (!committed.has(t.workerId)) committed.set(t.workerId, new Map())
+    const byDate = committed.get(t.workerId)!
+    byDate.set(dateStr, (byDate.get(dateStr) ?? 0) + t.hoursAssigned)
+  }
+  return committed
+}
+
+/** Increments a worker's booked hours in the committed map (mutates in place). */
+function addToCommitted(
+  committed: Map<string, Map<string, number>>,
+  workerId: string,
+  dateStr: string,
+  hours: number
+): void {
+  if (!committed.has(workerId)) committed.set(workerId, new Map())
+  const byDate = committed.get(workerId)!
+  byDate.set(dateStr, (byDate.get(dateStr) ?? 0) + hours)
+}
+
+/**
+ * Returns the worker with the most available hours on `date`, or null if
+ * no eligible worker has any capacity.
+ */
+function pickBestWorker(
+  eligible: WorkerForScheduling[],
+  date: Date,
+  committed: Map<string, Map<string, number>>
+): { worker: WorkerForScheduling; availableHours: number } | null {
+  const dateStr = toDateStr(date)
+  let best: WorkerForScheduling | null = null
+  let bestAvailable = 0
+
+  for (const worker of eligible) {
+    const base = getWorkerBaseHours(worker, date)
+    if (base <= 0) continue
+    const used = committed.get(worker.id)?.get(dateStr) ?? 0
+    const available = base - used
+    if (available > bestAvailable) {
+      bestAvailable = available
+      best = worker
+    }
+  }
+
+  return best ? { worker: best, availableHours: bestAvailable } : null
+}
+
+/**
+ * Validates that every step requiring a skill has at least one assigned worker
+ * who covers that skill. Throws `SchedulingValidationError` on the first gap found.
+ */
+async function validateSkillCoverage(
+  steps: { id: string; requiredCategoryId: string | null; durationHours: number }[],
+  workers: WorkerForScheduling[]
+): Promise<void> {
+  const coveredCategories = new Set(
+    workers.flatMap((w) => w.categories.map((wc) => wc.categoryId))
+  )
+  const uncoveredStep = steps.find(
+    (s) => s.requiredCategoryId && !coveredCategories.has(s.requiredCategoryId)
+  )
+  if (!uncoveredStep) return
+
+  const cat = await prisma.category.findUnique({
+    where: { id: uncoveredStep.requiredCategoryId! },
+    select: { name: true },
+  })
+  const label = cat?.name ?? uncoveredStep.requiredCategoryId
+  throw new SchedulingValidationError(
+    `No hay trabajadores asignados con el skill requerido: "${label}"`
+  )
+}
+
+/**
+ * Builds a pre-indexed Map<categoryId, WorkerForScheduling[]> for O(1) lookup
+ * of eligible workers per step.
+ */
+function buildWorkersByCategory(
+  workers: WorkerForScheduling[]
+): Map<string, WorkerForScheduling[]> {
+  const map = new Map<string, WorkerForScheduling[]>()
+  for (const worker of workers) {
+    for (const { categoryId } of worker.categories) {
+      if (!map.has(categoryId)) map.set(categoryId, [])
+      map.get(categoryId)!.push(worker)
+    }
+  }
+  return map
+}
+
+/**
+ * Core scheduling loop. Walks steps sequentially and returns an array of
+ * task rows to be inserted — pure in-memory, no DB side effects.
+ */
+function buildTasksToCreate(
+  orderId: string,
+  steps: { id: string; requiredCategoryId: string | null; durationHours: number }[],
+  workersByCategory: Map<string, WorkerForScheduling[]>,
+  committed: Map<string, Map<string, number>>,
+  startDate: Date
+): TaskToCreate[] {
+  const tasks: TaskToCreate[] = []
+  let currentDate = new Date(startDate)
+
+  for (const step of steps) {
+    const daysForStep = Math.max(1, Math.ceil(step.durationHours / 24))
+
+    // Waiting/drying time — no worker needed, just advance the calendar pointer
+    if (!step.requiredCategoryId) {
+      currentDate = addDays(currentDate, daysForStep)
+      continue
+    }
+
+    const eligibleWorkers = workersByCategory.get(step.requiredCategoryId) ?? []
+    if (eligibleWorkers.length === 0) {
+      currentDate = addDays(currentDate, daysForStep)
+      continue
+    }
+
+    let remainingHours = step.durationHours
+    let searchDate = new Date(currentDate)
+    let daysSearched = 0
+    let lastAssignedDate: Date | null = null
+
+    while (remainingHours > HOURS_EPSILON && daysSearched < SCHEDULING_HORIZON_DAYS) {
+      const pick = pickBestWorker(eligibleWorkers, searchDate, committed)
+
+      if (pick) {
+        const hoursAssigned = Math.min(pick.availableHours, remainingHours)
+        tasks.push({
+          orderId,
+          orderStepId: step.id,
+          workerId: pick.worker.id,
+          date: new Date(searchDate),
+          hoursAssigned,
+        })
+        addToCommitted(committed, pick.worker.id, toDateStr(searchDate), hoursAssigned)
+        remainingHours -= hoursAssigned
+        lastAssignedDate = new Date(searchDate)
+      }
+
+      searchDate = addDays(searchDate, 1)
+      daysSearched++
+    }
+
+    // Pipeline: next step starts the day after the last assignment for this step
+    currentDate = lastAssignedDate
+      ? addDays(lastAssignedDate, 1)
+      : addDays(currentDate, daysForStep)
+  }
+
+  return tasks
+}
+
+/**
+ * Auto-schedule an order's steps starting from tomorrow.
  *
  * Rules:
  * - Steps run sequentially (respecting the `order` index).
@@ -135,28 +313,23 @@ function getWorkerBaseHours(worker: WorkerForScheduling, date: Date): number {
  *   Each day, the eligible worker with the most unbooked hours is chosen.
  *   Multiple ScheduledTask rows are created if the step spans several days.
  * - If a step has no `requiredCategoryId` (e.g. drying/waiting time), advance
- *   the current date pointer by ⌈durationHours / 24⌉ calendar days without
- *   creating any task row.
+ *   the date pointer by ⌈durationHours / 24⌉ calendar days without creating rows.
  *
- * Existing ScheduledTask rows for this order are deleted before re-scheduling.
+ * Validates skill coverage BEFORE deleting the previous schedule so that
+ * a validation error never leaves the order without a schedule.
  * Returns the newly created tasks.
  */
 export async function scheduleOrder(orderId: string): Promise<ScheduledTaskRow[]> {
-  // 1. Clear previous schedule for this order
-  await prisma.scheduledTask.deleteMany({ where: { orderId } })
+  const startDate = startOfTomorrow()
 
-  // 2. Fetch steps sorted by order index
+  // 1. Fetch steps (validate early before any destructive operation)
   const steps = await prisma.orderStep.findMany({
     where: { orderId },
     orderBy: { order: "asc" },
   })
   if (steps.length === 0) return []
 
-  const today = startOfToday()
-  // Scheduling starts from tomorrow — never assign past or same-day tasks
-  const startDate = startOfTomorrow()
-
-  // 3. Fetch only the workers assigned to this order, with skill categories and availability
+  // 2. Fetch assigned workers with their skills and future availability
   const assignedWorkerIds = (
     await prisma.orderWorker.findMany({
       where: { orderId },
@@ -176,122 +349,24 @@ export async function scheduleOrder(orderId: string): Promise<ScheduledTaskRow[]
     },
   })
 
-  // 3b. Validate: every required skill has at least one assigned worker covering it
-  const coveredCategoryIds = new Set(workers.flatMap((w) => w.categories.map((wc) => wc.categoryId)))
-  const uncoveredStep = steps.find(
-    (s) => s.requiredCategoryId && !coveredCategoryIds.has(s.requiredCategoryId)
-  )
-  if (uncoveredStep) {
-    // Fetch the category name for a friendlier error
-    const cat = await prisma.category.findUnique({
-      where: { id: uncoveredStep.requiredCategoryId! },
-      select: { name: true },
-    })
-    const label = cat?.name ?? uncoveredStep.requiredCategoryId
-    throw new SchedulingValidationError(
-      `No hay trabajadores asignados con el skill requerido: "${label}"`
-    )
-  }
+  // 3. Validate skill coverage — throws before any destructive DB write
+  await validateSkillCoverage(steps, workers)
 
-  // 4. Now it is safe to clear the previous schedule and rebuild
+  // 4. Safe to clear the old schedule now that validation passed
   await prisma.scheduledTask.deleteMany({ where: { orderId } })
+
+  // 5. Build committed-hours map from all remaining tasks across other orders
   const existingTasks = await prisma.scheduledTask.findMany({
     where: { date: { gte: startDate } },
     select: { workerId: true, date: true, hoursAssigned: true },
   })
-  // Map: workerId → dateStr → total hours already booked
-  const committed = new Map<string, Map<string, number>>()
-  for (const t of existingTasks) {
-    if (!t.workerId) continue
-    const dateStr = toDateStr(t.date)
-    if (!committed.has(t.workerId)) committed.set(t.workerId, new Map())
-    const d = committed.get(t.workerId)!
-    d.set(dateStr, (d.get(dateStr) ?? 0) + t.hoursAssigned)
-  }
+  const committed = buildCommittedMap(existingTasks)
 
-  // 6. Walk through steps, building task rows in memory
-  const MAX_SEARCH_DAYS = 365
-  let currentDate = new Date(startDate)
+  // 6. Run the scheduling algorithm (pure, no DB calls)
+  const workersByCategory = buildWorkersByCategory(workers)
+  const tasksToCreate = buildTasksToCreate(orderId, steps, workersByCategory, committed, startDate)
 
-  const tasksToCreate: Array<{
-    orderId: string
-    orderStepId: string
-    workerId: string | null
-    date: Date
-    hoursAssigned: number
-  }> = []
-
-  for (const step of steps) {
-    // ── Waiting/drying time: no worker needed ─────────────────────────────
-    if (!step.requiredCategoryId) {
-      const daysToAdvance = Math.max(1, Math.ceil(step.durationHours / 24))
-      currentDate = addDays(currentDate, daysToAdvance)
-      continue
-    }
-
-    // ── Skill-based step: assign to eligible workers ──────────────────────
-    const eligibleWorkers = workers.filter((w) =>
-      w.categories.some((wc) => wc.categoryId === step.requiredCategoryId)
-    )
-
-    if (eligibleWorkers.length === 0) {
-      // No worker can do this step — skip ahead
-      currentDate = addDays(currentDate, Math.max(1, Math.ceil(step.durationHours / 24)))
-      continue
-    }
-
-    let remainingHours = step.durationHours
-    let searchDate = new Date(currentDate)
-    let dayCount = 0
-    let lastAssignedDate: Date | null = null
-
-    while (remainingHours > 0.001 && dayCount < MAX_SEARCH_DAYS) {
-      const dateStr = toDateStr(searchDate)
-
-      // Pick the eligible worker with the most available hours today
-      let bestWorker: WorkerForScheduling | null = null
-      let bestAvailable = 0
-
-      for (const worker of eligibleWorkers) {
-        const base = getWorkerBaseHours(worker, searchDate)
-        if (base <= 0) continue
-        const used = committed.get(worker.id)?.get(dateStr) ?? 0
-        const avail = base - used
-        if (avail > bestAvailable) {
-          bestAvailable = avail
-          bestWorker = worker
-        }
-      }
-
-      if (bestWorker && bestAvailable > 0) {
-        const toAssign = Math.min(bestAvailable, remainingHours)
-        tasksToCreate.push({
-          orderId,
-          orderStepId: step.id,
-          workerId: bestWorker.id,
-          date: new Date(searchDate),
-          hoursAssigned: toAssign,
-        })
-        // Update in-memory committed map
-        if (!committed.has(bestWorker.id)) committed.set(bestWorker.id, new Map())
-        const d = committed.get(bestWorker.id)!
-        d.set(dateStr, (d.get(dateStr) ?? 0) + toAssign)
-
-        remainingHours -= toAssign
-        lastAssignedDate = new Date(searchDate)
-      }
-
-      searchDate = addDays(searchDate, 1)
-      dayCount++
-    }
-
-    // Advance pointer to the day after the last assignment (pipeline effect)
-    currentDate = lastAssignedDate
-      ? addDays(lastAssignedDate, 1)
-      : addDays(currentDate, Math.max(1, Math.ceil(step.durationHours / 24)))
-  }
-
-  // 7. Persist all new tasks
+  // 7. Persist
   if (tasksToCreate.length > 0) {
     await prisma.scheduledTask.createMany({ data: tasksToCreate })
   }

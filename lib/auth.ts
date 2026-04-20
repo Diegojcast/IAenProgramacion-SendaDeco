@@ -28,7 +28,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user }) {
       const email = user.email?.toLowerCase() ?? ""
       if (!email) return false
-      if (ADMIN_EMAILS.includes(email)) return true
+      if (isAdminEmail(email)) return true
       const worker = await prisma.worker.findUnique({ where: { email }, select: { id: true } })
       return !!worker
     },
@@ -39,10 +39,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.email = user.email
       }
 
-      // Always re-derive role if missing (covers first login + token refresh)
+      // Re-derive role if missing (covers first login + token refresh).
+      // NOTE: role changes in the DB (e.g. worker promoted to admin) only take
+      // effect after the user's current session expires and they log in again.
       if (!token.role && token.email) {
         const email = (token.email as string).toLowerCase()
-        if (ADMIN_EMAILS.includes(email)) {
+        if (isAdminEmail(email)) {
           token.role = "admin"
           token.workerId = null
         } else {

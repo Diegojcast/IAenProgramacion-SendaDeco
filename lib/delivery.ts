@@ -100,28 +100,21 @@ export function calculateCartDeliveryTime(
     return { minDays: 0, maxDays: 0 }
   }
 
-  let cartMin = 0
-  let cartMax = 0
-  let first = true
-
-  for (const item of items) {
-    const linePartial = resolver?.(item)
-    const partial: Partial<FulfillmentSnapshot> = {
-      ...linePartial,
-      requestedQuantity: linePartial?.requestedQuantity ?? item.quantity,
-    }
-    const d = calculateProductDeliveryTime(item, partial)
-    if (first) {
-      cartMin = d.minDays
-      cartMax = d.maxDays
-      first = false
-    } else {
-      cartMin = Math.max(cartMin, d.minDays)
-      cartMax = Math.max(cartMax, d.maxDays)
-    }
-  }
-
-  return { minDays: cartMin, maxDays: cartMax }
+  return items.reduce(
+    (acc, item) => {
+      const linePartial = resolver?.(item)
+      const partial: Partial<FulfillmentSnapshot> = {
+        ...linePartial,
+        requestedQuantity: linePartial?.requestedQuantity ?? item.quantity,
+      }
+      const d = calculateProductDeliveryTime(item, partial)
+      return {
+        minDays: Math.max(acc.minDays, d.minDays),
+        maxDays: Math.max(acc.maxDays, d.maxDays),
+      }
+    },
+    { minDays: 0, maxDays: 0 }
+  )
 }
 
 /** Etiqueta corta para UI: "1-3", "7", etc. */

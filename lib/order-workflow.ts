@@ -51,7 +51,7 @@ export const ORDER_ADVANCE_LABEL: Readonly<Record<string, string>> = {
  */
 export function getStatusBadgeClass(status: string): string {
   switch (status) {
-    case "pendiente":    return "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400"
+    case "pendiente":
     case "confirmado":   return "bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400"
     case "en_produccion":return "bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400"
     case "listo":        return "bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-400"
@@ -75,10 +75,13 @@ export function isValidOrderTransition(from: string, to: string): boolean {
  * - Any non-cancelled status → any other non-cancelled status
  * - (Cancellation is handled via the separate "cancel" action)
  */
+/** All valid (non-terminal) status values — used to guard admin transitions. */
+const VALID_STATUS_VALUES = new Set(Object.keys(ORDER_STATUS_LABELS))
+
 export function isValidAdminTransition(from: string, to: string): boolean {
   if (from === "cancelado") return false          // terminal — cannot leave
   if (to === "cancelado") return false            // use the cancel action instead
-  return to in ORDER_STATUS_LABELS && to !== from
+  return VALID_STATUS_VALUES.has(to) && to !== from
 }
 
 /**
