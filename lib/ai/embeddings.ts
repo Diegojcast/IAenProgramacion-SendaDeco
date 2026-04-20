@@ -1,7 +1,8 @@
-// intfloat/multilingual-e5-small is tagged as `feature-extraction` on HF Hub
-// and supports Spanish natively via multilingual training.
+// intfloat/multilingual-e5-small supports Spanish natively.
+// The router routes it as sentence-similarity (its HF Hub tag), so we use
+// the direct pipeline URL to force feature-extraction mode.
 const HF_API_URL =
-  "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-small"
+  "https://api-inference.huggingface.co/pipeline/feature-extraction/intfloat/multilingual-e5-small"
 
 async function hfPost(inputs: string | string[]): Promise<unknown> {
   const res = await fetch(HF_API_URL, {
