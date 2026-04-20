@@ -98,6 +98,9 @@
         "supportedArchitectures": {
             "os": ["current", "linux"],
             "cpu": ["current", "x64"]
+        },
+        "overrides": {
+            "sharp": "^0.34.5"
         }
     }
 }
