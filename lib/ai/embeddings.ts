@@ -1,8 +1,7 @@
-// BAAI/bge-small-en-v1.5 is tagged as `feature-extraction` on HF Hub.
-// sentence-transformers/all-MiniLM-L6-v2 is tagged `sentence-similarity`,
-// which routes to a different pipeline that does not return raw embeddings.
+// intfloat/multilingual-e5-small is tagged as `feature-extraction` on HF Hub
+// and supports Spanish natively via multilingual training.
 const HF_API_URL =
-  "https://router.huggingface.co/hf-inference/models/BAAI/bge-small-en-v1.5"
+  "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-small"
 
 async function hfPost(inputs: string | string[]): Promise<unknown> {
   const res = await fetch(HF_API_URL, {
