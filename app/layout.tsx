@@ -19,9 +19,6 @@ export const metadata: Metadata = {
   title: 'Senda Deco - Decoración hecha a mano',
   description: 'Descubre nuestra colección de decoración artesanal hecha a mano. Macramé, cemento, velas y más.',
   generator: 'v0.app',
-  icons: {
-    icon: '/favicon.png',
-  },
 }
 
 export const viewport: Viewport = {
