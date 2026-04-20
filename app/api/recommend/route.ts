@@ -39,27 +39,35 @@ export async function POST(request: NextRequest) {
 
   const query: string = body.query.trim()
 
-  const [queryEmbedding, products] = await Promise.all([
-    getEmbedding(query),
-    adminGetProducts(),
-  ])
+  try {
+    const [queryEmbedding, products] = await Promise.all([
+      getEmbedding(query),
+      adminGetProducts(),
+    ])
 
-  const scored = await Promise.all(
-    products.map(async (product) => {
-      const text = [product.name, product.description, product.metadataText]
-        .filter(Boolean)
-        .join(" ")
-      const embedding = await getEmbedding(text)
-      return { product, score: cosineSimilarity(queryEmbedding, embedding) }
-    })
-  )
+    const scored = await Promise.all(
+      products.map(async (product) => {
+        const text = [product.name, product.description, product.metadataText]
+          .filter(Boolean)
+          .join(" ")
+        const embedding = await getEmbedding(text)
+        return { product, score: cosineSimilarity(queryEmbedding, embedding) }
+      })
+    )
 
-  const reason = generateReason(query)
+    const reason = generateReason(query)
 
-  const results = scored
-    .sort((a, b) => b.score - a.score)
-    .slice(0, TOP_N)
-    .map(({ product, score }) => ({ product, score, reason }))
+    const results = scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, TOP_N)
+      .map(({ product, score }) => ({ product, score, reason }))
 
-  return NextResponse.json({ results })
+    return NextResponse.json({ results })
+  } catch (error) {
+    console.error("[recommend] Error generating recommendations:", error)
+    return NextResponse.json(
+      { error: "Failed to generate recommendations" },
+      { status: 500 }
+    )
+  }
 }

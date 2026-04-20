@@ -1,4 +1,8 @@
-import { pipeline, type FeatureExtractionPipeline } from "@xenova/transformers"
+import { pipeline, env, type FeatureExtractionPipeline } from "@xenova/transformers"
+
+// In Vercel serverless, only /tmp is writable. Configure cache there.
+env.cacheDir = "/tmp/.cache/transformers"
+env.allowLocalModels = false
 
 const MODEL_ID = "Xenova/all-MiniLM-L6-v2"
 
