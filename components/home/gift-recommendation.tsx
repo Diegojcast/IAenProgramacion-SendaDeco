@@ -86,9 +86,6 @@ export function GiftRecommendation({ products: _ }: GiftRecommendationProps) {
 
           {recommendations.length > 0 && (
             <div className="mt-14">
-              <p className="text-xs text-muted-foreground/70 mb-3 tracking-wide">
-                ✨ Recomendaciones generadas con IA
-              </p>
               <h3 className="text-sm uppercase tracking-[0.2em] text-muted-foreground mb-8">
                 Te recomendamos
               </h3>
