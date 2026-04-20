@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getEmbedding } from "@/lib/ai/embeddings"
+import { getEmbedding, getEmbeddings } from "@/lib/ai/embeddings"
 import { cosineSimilarity } from "@/lib/ai/similarity"
 import { adminGetProducts } from "@/lib/repositories/admin/products"
 
@@ -45,15 +45,15 @@ export async function POST(request: NextRequest) {
       adminGetProducts(),
     ])
 
-    const scored = await Promise.all(
-      products.map(async (product) => {
-        const text = [product.name, product.description, product.metadataText]
-          .filter(Boolean)
-          .join(" ")
-        const embedding = await getEmbedding(text)
-        return { product, score: cosineSimilarity(queryEmbedding, embedding) }
-      })
+    const productTexts = products.map((p) =>
+      [p.name, p.description, p.metadataText].filter(Boolean).join(" ")
     )
+    const productEmbeddings = await getEmbeddings(productTexts)
+
+    const scored = products.map((product, i) => ({
+      product,
+      score: cosineSimilarity(queryEmbedding, productEmbeddings[i]),
+    }))
 
     const reason = generateReason(query)
 
@@ -64,9 +64,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ results })
   } catch (error) {
-    console.error("[recommend] Error generating recommendations:", error)
+    const message = error instanceof Error ? error.message : String(error)
+    console.error("[recommend] Error generating recommendations:", message)
     return NextResponse.json(
-      { error: "Failed to generate recommendations" },
+      { error: "Failed to generate recommendations", detail: message },
       { status: 500 }
     )
   }

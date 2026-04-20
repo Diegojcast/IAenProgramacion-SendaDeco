@@ -6,7 +6,7 @@ const nextConfig = {
     images: {
         unoptimized: true,
     },
-    serverExternalPackages: ["@xenova/transformers", "sharp"],
+    serverExternalPackages: ["sharp"],
 }
 
 export default nextConfig

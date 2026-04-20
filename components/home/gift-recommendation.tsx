@@ -35,7 +35,8 @@ export function GiftRecommendation({ products: _ }: GiftRecommendationProps) {
         body: JSON.stringify({ query: query.trim() }),
       })
       if (!res.ok) {
-        console.error("[recommend] Server error:", res.status)
+        const errData = await res.json().catch(() => ({}))
+        console.error("[recommend] Server error:", res.status, errData)
         return
       }
       const data = await res.json()
