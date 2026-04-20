@@ -32,26 +32,61 @@ function adjustScore(baseScore: number, query: string, productText: string): num
 
 function generateReason(query: string, score: number): string {
   const q = query.toLowerCase()
-  const pct = (score * 100).toFixed(2)
+  const pct = (score * 100).toFixed(0)
 
+  // 🎯 detecciones
   const isModern =
-    /moderno|moderna|contempor[aá]neo|contempor[aá]nea|minimalista|actual/.test(q)
+    /moderno|moderna|contempor[aá]neo|minimalista|actual/.test(q)
   const isExterior =
-    /jard[ií]n|terraza|exterior|afuera|patio|balc[oó]n/.test(q)
+    /jard[ií]n|terraza|exterior|patio|balc[oó]n|aire libre/.test(q)
+  const isInterior =
+    /interior|living|casa|hogar|decoraci[oó]n/.test(q)
   const isGift =
-    /regalo|obsequio|detalle|present[ae]|sorpresa/.test(q)
+    /regalo|obsequio|detalle|sorpresa/.test(q)
+  const isWarm =
+    /c[aá]lido|hogare[nñ]o|acogedor/.test(q)
+  const isRustic =
+    /r[uú]stico|natural|artesanal/.test(q)
 
-  const parts: string[] = []
+  // 🎲 helpers para variedad
+  const pick = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)]
 
-  if (isModern) parts.push("coincide con un estilo moderno")
-  if (isExterior) parts.push("es ideal para espacios exteriores")
-  if (isGift) parts.push("es una excelente opción como regalo")
+  const intros = [
+    "Lo elegimos porque",
+    "Te lo recomendamos porque",
+    "Este producto encaja bien porque",
+    "Puede ser una gran opción porque",
+  ]
 
-  if (parts.length === 0) {
-    return `Este producto fue recomendado porque se ajusta a tu búsqueda en un ${pct}%.`
+  const closings = [
+    `(${pct}% de afinidad)`,
+    `con un ${pct}% de coincidencia`,
+    `y coincide en un ${pct}% con tu búsqueda`,
+  ]
+
+  const reasons: string[] = []
+
+  if (isModern) reasons.push("tiene un estilo moderno y actual")
+  if (isExterior) reasons.push("funciona muy bien en espacios exteriores")
+  if (isInterior) reasons.push("encaja perfecto en interiores")
+  if (isGift) reasons.push("es ideal para regalar")
+  if (isWarm) reasons.push("aporta una sensación cálida y acogedora")
+  if (isRustic) reasons.push("tiene un carácter artesanal y natural")
+
+  // 🎯 fallback más natural
+  if (reasons.length === 0) {
+    return pick([
+      `Este producto se alinea con lo que estás buscando ${closings[0]}.`,
+      `Creemos que puede gustarte según tu búsqueda ${closings[1]}.`,
+      `Es una buena coincidencia con lo que describiste ${closings[2]}.`,
+    ])
   }
 
-  return `Este producto fue recomendado porque ${parts.join(" y ")} en un ${pct}%.`
+  // 🎯 construir frase variada
+  const intro = pick(intros)
+  const closing = pick(closings)
+
+  return `${intro} ${reasons.join(" y ")} ${closing}.`
 }
 
 export async function POST(request: NextRequest) {
