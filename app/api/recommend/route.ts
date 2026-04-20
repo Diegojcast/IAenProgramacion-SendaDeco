@@ -96,7 +96,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ results })
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === "object" && error !== null
+          ? JSON.stringify(error)
+          : String(error)
     console.error("[recommend] Error generating recommendations:", message)
     return NextResponse.json(
       { error: "Failed to generate recommendations", detail: message },

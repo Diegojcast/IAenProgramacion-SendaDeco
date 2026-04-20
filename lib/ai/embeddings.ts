@@ -1,8 +1,8 @@
 // intfloat/multilingual-e5-small supports Spanish natively.
-// The router routes it as sentence-similarity (its HF Hub tag), so we use
-// the direct pipeline URL to force feature-extraction mode.
+// Its pipeline_tag on HF Hub is `feature-extraction`, so the standard
+// /models/ endpoint routes it correctly without needing the /pipeline/ override.
 const HF_API_URL =
-  "https://api-inference.huggingface.co/pipeline/feature-extraction/intfloat/multilingual-e5-small"
+  "https://api-inference.huggingface.co/models/intfloat/multilingual-e5-small"
 
 async function hfPost(inputs: string | string[]): Promise<unknown> {
   const res = await fetch(HF_API_URL, {
@@ -17,7 +17,13 @@ async function hfPost(inputs: string | string[]): Promise<unknown> {
     const text = await res.text().catch(() => res.statusText)
     throw new Error(`HuggingFace API error ${res.status}: ${text}`)
   }
-  return res.json()
+  const json = await res.json()
+  // HF returns a loading payload when the model is cold — not an embedding array.
+  if (!Array.isArray(json)) {
+    const detail = typeof json === "object" && json !== null ? JSON.stringify(json) : String(json)
+    throw new Error(`HuggingFace unexpected response (model may be loading): ${detail}`)
+  }
+  return json
 }
 
 // Feature-extraction returns token-level embeddings (seq_len × hidden_size).
