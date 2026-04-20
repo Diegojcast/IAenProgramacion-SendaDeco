@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import type { Order } from "@/types"
 
 const paymentMethodLabels: Record<string, string> = {
-  mercadopago: "Mercado Pago",
   transferencia: "Transferencia",
   efectivo: "Efectivo",
 }

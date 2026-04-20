@@ -81,7 +81,7 @@ export type Order = {
     codigoPostal: string
   }
   deliveryMethod: "envio" | "retiro"
-  paymentMethod: "mercadopago" | "transferencia" | "efectivo"
+  paymentMethod: "transferencia" | "efectivo"
   status: OrderStatus
   total: number
   /** Texto legible del plazo estimado (ej. "1-3" o "7") */

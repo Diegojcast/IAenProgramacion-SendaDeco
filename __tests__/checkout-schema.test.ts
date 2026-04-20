@@ -152,10 +152,6 @@ describe("campo deliveryMethod", () => {
 // ─── paymentMethod ───────────────────────────────────────────────────────────
 
 describe("campo paymentMethod", () => {
-  it("acepta 'mercadopago'", () => {
-    expect(parseValid({ ...baseRetiro, paymentMethod: "mercadopago" }).success).toBe(true)
-  })
-
   it("acepta 'transferencia'", () => {
     expect(parseValid({ ...baseRetiro, paymentMethod: "transferencia" }).success).toBe(true)
   })

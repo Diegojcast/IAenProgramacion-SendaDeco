@@ -21,7 +21,7 @@ export const checkoutFormSchema = z
     ciudad: z.string().optional(),
     codigoPostal: z.string().optional(),
     deliveryMethod: z.enum(["envio", "retiro"]),
-    paymentMethod: z.enum(["mercadopago", "transferencia", "efectivo"]),
+    paymentMethod: z.enum(["transferencia", "efectivo"]),
   })
   .superRefine((data, ctx) => {
     if (data.deliveryMethod !== "envio") return

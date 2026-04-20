@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { revalidatePath } from "next/cache"
 import {
   adminGetProductById,
   adminUpdateProduct,
@@ -30,6 +31,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     const data = await request.json()
     const product = await adminUpdateProduct(id, data)
+    revalidatePath("/")
+    revalidatePath("/productos")
+    revalidatePath(`/producto/${id}`)
     return NextResponse.json({ product })
   } catch (err) {
     console.error("[PUT /api/admin/products/[id]]", err)
@@ -41,5 +45,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id } = await params
   await adminDeleteProduct(id)
+  revalidatePath("/")
+  revalidatePath("/productos")
   return NextResponse.json({ ok: true })
 }

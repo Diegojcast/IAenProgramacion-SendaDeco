@@ -55,7 +55,7 @@ export function CheckoutForm({ colorOptions }: { colorOptions: ColorRow[] }) {
       ciudad: "",
       codigoPostal: "",
       deliveryMethod: "envio",
-      paymentMethod: "mercadopago",
+      paymentMethod: "transferencia",
     },
     mode: "onTouched",
   })
@@ -336,12 +336,6 @@ export function CheckoutForm({ colorOptions }: { colorOptions: ColorRow[] }) {
                       value={field.value}
                       className="flex flex-wrap gap-x-8 gap-y-3"
                     >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="mercadopago" id="mercadopago" />
-                        <Label htmlFor="mercadopago" className="cursor-pointer font-normal">
-                          Mercado Pago
-                        </Label>
-                      </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="transferencia" id="transferencia" />
                         <Label htmlFor="transferencia" className="cursor-pointer font-normal">
