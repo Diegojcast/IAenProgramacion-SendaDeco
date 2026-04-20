@@ -23,6 +23,7 @@ async function hfPost(inputs: string | string[]): Promise<unknown> {
 // Feature-extraction returns token-level embeddings (seq_len × hidden_size).
 // Mean-pool across tokens to get a single sentence embedding.
 function meanPool(tokenEmbeddings: number[][]): number[] {
+  if (tokenEmbeddings.length === 0) return []
   const dim = tokenEmbeddings[0].length
   const result = new Array<number>(dim).fill(0)
   for (const token of tokenEmbeddings) {
@@ -31,13 +32,34 @@ function meanPool(tokenEmbeddings: number[][]): number[] {
   return result.map((v) => v / tokenEmbeddings.length)
 }
 
+// The HF feature-extraction API may return different shapes depending on the
+// model and whether the input is a single string or a batch:
+//   - number[]          → already a pooled vector (return as-is)
+//   - number[][]        → [seq_len, hidden_size] (mean-pool rows)
+//   - number[][][1...]  → [1, seq_len, hidden_size] (unwrap batch dim, then mean-pool)
+function extractEmbedding(raw: unknown): number[] {
+  const arr = raw as number[] | number[][] | number[][][]
+  // Case 1: flat vector — already pooled
+  if (typeof arr[0] === "number") {
+    return arr as number[]
+  }
+  // Case 2: batch wrapper [1, seq_len, dim] — unwrap first element
+  if (Array.isArray((arr as number[][][])[0][0])) {
+    return meanPool((arr as number[][][])[0])
+  }
+  // Case 3: token-level matrix [seq_len, dim]
+  return meanPool(arr as number[][])
+}
+
 export async function getEmbedding(text: string): Promise<number[]> {
-  const data = await hfPost(text) as number[][]
-  return meanPool(data)
+  const normalized = text.toLowerCase().trim()
+  const raw = await hfPost(normalized)
+  return extractEmbedding(raw)
 }
 
 export async function getEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return []
-  const data = await hfPost(texts) as number[][][]
-  return data.map(meanPool)
+  const normalized = texts.map((t) => t.toLowerCase().trim())
+  const raw = await hfPost(normalized) as unknown[]
+  return raw.map(extractEmbedding)
 }
