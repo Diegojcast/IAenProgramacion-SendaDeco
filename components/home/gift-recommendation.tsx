@@ -34,8 +34,14 @@ export function GiftRecommendation({ products: _ }: GiftRecommendationProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: query.trim() }),
       })
+      if (!res.ok) {
+        console.error("[recommend] Server error:", res.status)
+        return
+      }
       const data = await res.json()
       setRecommendations(data.results ?? [])
+    } catch (err) {
+      console.error("[recommend] Request failed:", err)
     } finally {
       setIsSearching(false)
     }

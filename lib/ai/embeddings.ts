@@ -6,13 +6,13 @@ env.allowLocalModels = false
 
 const MODEL_ID = "Xenova/all-MiniLM-L6-v2"
 
-let embedder: FeatureExtractionPipeline | null = null
+let embedderPromise: Promise<FeatureExtractionPipeline> | null = null
 
 export async function getEmbedder(): Promise<FeatureExtractionPipeline> {
-  if (!embedder) {
-    embedder = await pipeline("feature-extraction", MODEL_ID)
+  if (!embedderPromise) {
+    embedderPromise = pipeline("feature-extraction", MODEL_ID)
   }
-  return embedder
+  return embedderPromise
 }
 
 export async function getEmbedding(text: string): Promise<number[]> {
