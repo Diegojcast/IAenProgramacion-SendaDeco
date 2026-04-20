@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { auth } from "@/lib/auth"
 import { getWorkerAvailability, setWorkerAvailability } from "@/lib/repositories/admin/workers"
+
+async function requireAdmin() {
+  const session = await auth()
+  // @ts-expect-error – custom field
+  if (session?.user?.role !== "admin") return null
+  return session
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id: workerId } = await params
   const { searchParams } = request.nextUrl
 
@@ -24,6 +33,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id: workerId } = await params
   const { date, availableHours } = await request.json()
 

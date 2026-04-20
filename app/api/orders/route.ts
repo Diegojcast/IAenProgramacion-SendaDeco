@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import { createOrder, listOrders } from "@/lib/repositories/orders"
 import { sendOrderConfirmationEmail } from "@/lib/email/order-confirmation"
 import { sendAdminOrderNotification } from "@/lib/email/admin-order-notification"
+import { auth } from "@/lib/auth"
 import type { Order } from "@/types"
 
 /**
@@ -11,6 +12,11 @@ import type { Order } from "@/types"
  */
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as Order
+
+  // Basic payload sanitation
+  if (!body?.customer?.email || !body?.items?.length) {
+    return NextResponse.json({ error: "Invalid order payload" }, { status: 400 })
+  }
 
   // Revive Date that arrives as a string from JSON
   const order: Order = {
@@ -32,9 +38,14 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/orders — returns all orders (admin use only; add auth before going live).
+ * GET /api/orders — returns all orders (admin only).
  */
 export async function GET() {
+  const session = await auth()
+  // @ts-expect-error – custom field
+  if (session?.user?.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
   const orders = await listOrders()
   return NextResponse.json({ orders })
 }

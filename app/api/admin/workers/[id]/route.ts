@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { auth } from "@/lib/auth"
 import {
   adminGetWorkerById,
   adminUpdateWorker,
   adminDeleteWorker,
 } from "@/lib/repositories/admin/workers"
 
+async function requireAdmin() {
+  const session = await auth()
+  // @ts-expect-error – custom field
+  if (session?.user?.role !== "admin") return null
+  return session
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id } = await params
   const worker = await adminGetWorkerById(id)
   if (!worker) return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -20,6 +29,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id } = await params
   const data = await request.json()
   const worker = await adminUpdateWorker(id, data)
@@ -30,6 +40,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id } = await params
   await adminDeleteWorker(id)
   return NextResponse.json({ ok: true })

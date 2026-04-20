@@ -9,16 +9,25 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db/prisma"
+import { auth } from "@/lib/auth"
 import { extractAndProcessImage } from "@/lib/image-processing"
 
 export const dynamic = "force-dynamic"
 
 const MAX_IMAGES = 10
 
+async function requireAdmin() {
+  const session = await auth()
+  // @ts-expect-error – custom field
+  if (session?.user?.role !== "admin") return null
+  return session
+}
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id } = await params
 
   const images = await prisma.productImage.findMany({
@@ -34,6 +43,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id } = await params
 
   const product = await prisma.product.findUnique({ where: { id } })

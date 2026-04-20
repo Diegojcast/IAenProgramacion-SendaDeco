@@ -21,11 +21,13 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   const body = await request.json()
 
   if (body.action === "cancel") {
+    if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     await cancelOrder(id)
     return NextResponse.json({ ok: true })
   }
 
   if (body.action === "assign-workers") {
+    if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     const workerIds: string[] = body.workerIds ?? []
     await assignWorkersToOrder(id, workerIds)
     return NextResponse.json({ ok: true })

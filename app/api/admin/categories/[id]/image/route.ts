@@ -6,12 +6,21 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db/prisma"
+import { auth } from "@/lib/auth"
 import { extractAndProcessImage } from "@/lib/image-processing"
+
+async function requireAdmin() {
+  const session = await auth()
+  // @ts-expect-error – custom field
+  if (session?.user?.role !== "admin") return null
+  return session
+}
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id } = await params
 
   const category = await prisma.category.findUnique({ where: { id } })
@@ -52,6 +61,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const { id } = await params
 
   await prisma.category.update({

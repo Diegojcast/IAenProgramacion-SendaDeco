@@ -6,9 +6,18 @@
 
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db/prisma"
+import { auth } from "@/lib/auth"
 import { extractAndProcessImage } from "@/lib/image-processing"
 
+async function requireAdmin() {
+  const session = await auth()
+  // @ts-expect-error – custom field
+  if (session?.user?.role !== "admin") return null
+  return session
+}
+
 export async function GET() {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const settings = await prisma.homepageSettings.findUnique({
     where: { id: "main" },
     select: { heroImageMime: true, heroAlt: true, updatedAt: true },
@@ -22,6 +31,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   const formData = await req.formData()
   const heroAlt = (formData.get("heroAlt") as string | null) ?? ""
 
@@ -62,6 +72,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE() {
+  if (!await requireAdmin()) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   await prisma.homepageSettings.upsert({
     where: { id: "main" },
     update: { heroImageData: null, heroImageMime: null },

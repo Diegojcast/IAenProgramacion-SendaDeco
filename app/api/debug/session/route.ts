@@ -1,7 +1,12 @@
-import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
+// Debug endpoint — disabled in production
 export async function GET() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  const { auth } = await import("@/lib/auth")
   const session = await auth()
 
   if (!session) {
