@@ -93,5 +93,11 @@
     },
     "prisma": {
         "seed": "npx tsx prisma/seed.ts"
+    },
+    "pnpm": {
+        "supportedArchitectures": {
+            "os": ["current", "linux"],
+            "cpu": ["current", "x64"]
+        }
     }
 }
