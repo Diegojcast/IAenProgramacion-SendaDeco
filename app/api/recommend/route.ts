@@ -3,6 +3,8 @@ import { getEmbedding } from "@/lib/ai/embeddings"
 import { cosineSimilarity } from "@/lib/ai/similarity"
 import { adminGetProducts } from "@/lib/repositories/admin/products"
 
+export const dynamic = "force-dynamic"
+
 const TOP_N = 5
 
 function generateReason(query: string): string {
