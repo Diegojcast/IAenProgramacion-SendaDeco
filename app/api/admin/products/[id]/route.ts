@@ -17,9 +17,14 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
 export async function PUT(request: NextRequest, { params }: Params) {
   const { id } = await params
-  const data = await request.json()
-  const product = await adminUpdateProduct(id, data)
-  return NextResponse.json({ product })
+  try {
+    const data = await request.json()
+    const product = await adminUpdateProduct(id, data)
+    return NextResponse.json({ product })
+  } catch (err) {
+    console.error("[PUT /api/admin/products/[id]]", err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
+  }
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {

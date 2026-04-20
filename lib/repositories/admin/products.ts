@@ -12,6 +12,7 @@ export type AdminProduct = {
   /** @deprecated Use steps instead. Kept for backward-compat. */
   drying_time: number
   description: string
+  metadataText: string | null
   categories: { id: string; name: string }[]
   colors: { stock: number; color: { id: string; name: string; hex: string | null } }[]
   materials: { quantity: number; material: { id: string; name: string; unit: string } }[]
@@ -29,6 +30,7 @@ function toAdminProduct(r: {
   production_time: number
   drying_time: number
   description: string
+  metadataText: string | null
   categories: { category: { id: string; name: string } }[]
   colors: { stock: number; color: { id: string; name: string; hex: string | null } }[]
   materials: { quantity: number; material: { id: string; name: string; unit: string } }[]
@@ -44,6 +46,7 @@ function toAdminProduct(r: {
     production_time: r.production_time,
     drying_time: r.drying_time,
     description: r.description,
+    metadataText: r.metadataText ?? null,
     categories: r.categories.map((c) => ({ id: c.category.id, name: c.category.name })),
     colors: r.colors.map((c) => ({
       stock: c.stock,
@@ -106,20 +109,24 @@ export type ProductFormData = {
   name: string
   categoryIds: string[]
   price: number
-  production_time: number
-  drying_time: number
+  production_time?: number
+  drying_time?: number
   description: string
   active: boolean
   featured: boolean
+  metadataText?: string | null
   colorVariants: { colorId: string; stock: number }[]
   materials: { materialId: string; quantity: number }[]
 }
 
 export async function adminCreateProduct(data: ProductFormData) {
-  const { categoryIds, colorVariants, materials, ...fields } = data
+  const { categoryIds, colorVariants, materials, metadataText, production_time, drying_time, ...fields } = data
   return prisma.product.create({
     data: {
       ...fields,
+      production_time: production_time ?? 0,
+      drying_time: drying_time ?? 0,
+      metadataText: metadataText ?? undefined,
       categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
       colors: { create: colorVariants.map(({ colorId, stock }) => ({ colorId, stock })) },
       materials: { create: materials.map(({ materialId, quantity }) => ({ materialId, quantity })) },
@@ -128,11 +135,14 @@ export async function adminCreateProduct(data: ProductFormData) {
 }
 
 export async function adminUpdateProduct(id: string, data: ProductFormData) {
-  const { categoryIds, colorVariants, materials, ...fields } = data
+  const { categoryIds, colorVariants, materials, metadataText, production_time, drying_time, ...fields } = data
   return prisma.product.update({
     where: { id },
     data: {
       ...fields,
+      ...(production_time !== undefined && { production_time }),
+      ...(drying_time !== undefined && { drying_time }),
+      metadataText: metadataText ?? null,
       categories: {
         deleteMany: {},
         create: categoryIds.map((categoryId) => ({ categoryId })),

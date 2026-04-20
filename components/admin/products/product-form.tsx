@@ -121,6 +121,7 @@ export function ProductForm({ product, categories, colors, materials }: ProductF
   const [materialRows, setMaterialRows] = useState<{ materialId: string; quantity: number }[]>(
     product?.materials.map((m) => ({ materialId: m.material.id, quantity: m.quantity })) ?? []
   )
+  const [metadataText, setMetadataText] = useState<string>(product?.metadataText ?? "")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showStepErrors, setShowStepErrors] = useState(false)
@@ -195,6 +196,7 @@ export function ProductForm({ product, categories, colors, materials }: ProductF
       description,
       active,
       featured,
+      metadataText: metadataText.trim() || null,
       colorVariants: Object.entries(colorStocks).map(([colorId, stock]) => ({ colorId, stock })),
       materials: materialRows.filter((r) => r.materialId),
     }
@@ -474,6 +476,27 @@ export function ProductForm({ product, categories, colors, materials }: ProductF
             )}
           </div>
         )}
+      </div>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      {/* Internal field — not shown in public frontend */}
+      <Separator />
+      <div className="space-y-1.5">
+        <Label htmlFor="metadataText">
+          Descripción interna{" "}
+          <span className="text-xs text-muted-foreground font-normal">(IA)</span>
+        </Label>
+        <Textarea
+          id="metadataText"
+          rows={4}
+          placeholder="Ej: Macramé artesanal ideal para regalo, decoración de hogar, ambientes minimalistas..."
+          value={metadataText}
+          onChange={(e) => setMetadataText(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">
+          Este campo no se muestra al cliente. Sirve para mejorar búsquedas y recomendaciones.
+        </p>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
