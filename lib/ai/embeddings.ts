@@ -1,71 +1,58 @@
-// intfloat/multilingual-e5-small supports Spanish natively.
-// Its pipeline_tag on HF Hub is `feature-extraction`, so the standard
-// /models/ endpoint routes it correctly without needing the /pipeline/ override.
+// All multilingual sentence-transformer models on HF Hub are tagged as
+// sentence-similarity, so the router always dispatches to SentenceSimilarityPipeline.
+// We use that pipeline's native format: { source_sentence, sentences } → number[]
+// which returns cosine similarity scores directly — no manual pooling or cosine needed.
 const HF_API_URL =
-  "https://api-inference.huggingface.co/models/intfloat/multilingual-e5-small"
+  "https://router.huggingface.co/hf-inference/models/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
 
-async function hfPost(inputs: string | string[]): Promise<unknown> {
+// Max sentences per request — keep requests reasonably sized.
+const BATCH_SIZE = 64
+
+async function hfSimilarityBatch(query: string, sentences: string[]): Promise<number[]> {
   const res = await fetch(HF_API_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
       "Content-Type": "application/json",
+      // Block until the model is warm instead of getting a 503 cold-start error.
+      "x-wait-for-model": "true",
     },
-    body: JSON.stringify({ inputs }),
+    body: JSON.stringify({
+      inputs: {
+        source_sentence: query,
+        sentences,
+      },
+    }),
   })
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText)
     throw new Error(`HuggingFace API error ${res.status}: ${text}`)
   }
   const json = await res.json()
-  // HF returns a loading payload when the model is cold — not an embedding array.
   if (!Array.isArray(json)) {
     const detail = typeof json === "object" && json !== null ? JSON.stringify(json) : String(json)
     throw new Error(`HuggingFace unexpected response (model may be loading): ${detail}`)
   }
-  return json
+  return json as number[]
 }
 
-// Feature-extraction returns token-level embeddings (seq_len × hidden_size).
-// Mean-pool across tokens to get a single sentence embedding.
-function meanPool(tokenEmbeddings: number[][]): number[] {
-  if (tokenEmbeddings.length === 0) return []
-  const dim = tokenEmbeddings[0].length
-  const result = new Array<number>(dim).fill(0)
-  for (const token of tokenEmbeddings) {
-    for (let i = 0; i < dim; i++) result[i] += token[i]
+/**
+ * Returns a cosine similarity score in [0, 1] for each sentence against the query.
+ * Batches requests when there are more than BATCH_SIZE sentences.
+ */
+export async function getSimilarityScores(
+  query: string,
+  sentences: string[]
+): Promise<number[]> {
+  if (sentences.length === 0) return []
+  const normalizedQuery = query.toLowerCase().trim()
+  const normalizedSentences = sentences.map((s) => s.toLowerCase().trim())
+
+  const results: number[] = []
+  for (let i = 0; i < normalizedSentences.length; i += BATCH_SIZE) {
+    const chunk = normalizedSentences.slice(i, i + BATCH_SIZE)
+    const scores = await hfSimilarityBatch(normalizedQuery, chunk)
+    results.push(...scores)
   }
-  return result.map((v) => v / tokenEmbeddings.length)
-}
-
-// The HF feature-extraction API may return different shapes depending on the
-// model and whether the input is a single string or a batch:
-//   - number[]          → already a pooled vector (return as-is)
-//   - number[][]        → [seq_len, hidden_size] (mean-pool rows)
-//   - number[][][1...]  → [1, seq_len, hidden_size] (unwrap batch dim, then mean-pool)
-function extractEmbedding(raw: unknown): number[] {
-  const arr = raw as number[] | number[][] | number[][][]
-  // Case 1: flat vector — already pooled
-  if (typeof arr[0] === "number") {
-    return arr as number[]
-  }
-  // Case 2: batch wrapper [1, seq_len, dim] — unwrap first element
-  if (Array.isArray((arr as number[][][])[0][0])) {
-    return meanPool((arr as number[][][])[0])
-  }
-  // Case 3: token-level matrix [seq_len, dim]
-  return meanPool(arr as number[][])
-}
-
-export async function getEmbedding(text: string): Promise<number[]> {
-  const normalized = text.toLowerCase().trim()
-  const raw = await hfPost(normalized)
-  return extractEmbedding(raw)
-}
-
-export async function getEmbeddings(texts: string[]): Promise<number[][]> {
-  if (texts.length === 0) return []
-  const normalized = texts.map((t) => t.toLowerCase().trim())
-  const raw = await hfPost(normalized) as unknown[]
-  return raw.map(extractEmbedding)
+  return results
 }

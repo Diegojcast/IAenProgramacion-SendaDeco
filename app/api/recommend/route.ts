@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getEmbedding, getEmbeddings } from "@/lib/ai/embeddings"
-import { cosineSimilarity } from "@/lib/ai/similarity"
+import { getSimilarityScores } from "@/lib/ai/embeddings"
 import { adminGetProducts } from "@/lib/repositories/admin/products"
 
 export const dynamic = "force-dynamic"
 
 const TOP_N = 3
-const MIN_SCORE = 0.63
+const MIN_SCORE = 0.30
 
 const BOOST_EXTERIOR = 0.10
 const PENALTY_INTERIOR = 0.08
@@ -31,8 +30,9 @@ function adjustScore(baseScore: number, query: string, productText: string): num
   return Math.min(1, Math.max(0, score))
 }
 
-function generateReason(query: string): string {
+function generateReason(query: string, score: number): string {
   const q = query.toLowerCase()
+  const pct = (score * 100).toFixed(2)
 
   const isModern =
     /moderno|moderna|contempor[aá]neo|contempor[aá]nea|minimalista|actual/.test(q)
@@ -48,10 +48,10 @@ function generateReason(query: string): string {
   if (isGift) parts.push("es una excelente opción como regalo")
 
   if (parts.length === 0) {
-    return "Este producto fue recomendado porque se ajusta a tu búsqueda."
+    return `Este producto fue recomendado porque se ajusta a tu búsqueda en un ${pct}%.`
   }
 
-  return `Este producto fue recomendado porque ${parts.join(" y ")}.`
+  return `Este producto fue recomendado porque ${parts.join(" y ")} en un ${pct}%.`
 }
 
 export async function POST(request: NextRequest) {
@@ -64,10 +64,7 @@ export async function POST(request: NextRequest) {
   const query: string = body.query.trim()
 
   try {
-    const [queryEmbedding, products] = await Promise.all([
-      getEmbedding(query),
-      adminGetProducts(),
-    ])
+    const products = await adminGetProducts()
 
     const productTexts = products.map((p) =>
       [p.name, p.description, p.metadataText]
@@ -76,23 +73,21 @@ export async function POST(request: NextRequest) {
         .toLowerCase()
         .trim()
     )
-    const productEmbeddings = await getEmbeddings(productTexts)
+    const rawScores = await getSimilarityScores(query, productTexts)
 
     const scored = products.map((product, i) => {
-      const base = cosineSimilarity(queryEmbedding, productEmbeddings[i])
+      const base = rawScores[i]
       const productText = productTexts[i]
       const score = adjustScore(base, query, productText)
       console.log(product.name, score)
       return { product, score }
     })
 
-    const reason = generateReason(query)
-
     const results = scored
       .filter(({ score }) => score >= MIN_SCORE)
       .sort((a, b) => b.score - a.score)
       .slice(0, TOP_N)
-      .map(({ product, score }) => ({ product, score, reason }))
+      .map(({ product, score }) => ({ product, score, reason: generateReason(query, score) }))
 
     return NextResponse.json({ results })
   } catch (error) {
